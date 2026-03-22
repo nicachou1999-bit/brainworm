@@ -1,5 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+import Login from './screens/Login'
 import Inbox from './screens/Inbox'
 import Themes from './screens/Themes'
 import ThemeDetail from './screens/ThemeDetail'
@@ -8,6 +10,40 @@ import Settings from './screens/Settings'
 
 export default function Home() {
   const [screen, setScreen] = useState('inbox')
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  if (loading) {
+    return (
+      <div style={{
+        backgroundColor: '#0C0C0F', minHeight: '100vh', maxWidth: '390px',
+        margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}>
+        <div style={{ fontSize: '32px' }}>🧠</div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div style={{ maxWidth: '390px', margin: '0 auto', fontFamily: 'system-ui, sans-serif', color: '#F0EFF8' }}>
+        <Login onLogin={() => {}} />
+      </div>
+    )
+  }
 
   return (
     <div style={{
@@ -19,11 +55,11 @@ export default function Home() {
       color: '#F0EFF8',
       position: 'relative'
     }}>
-      {screen === 'inbox' && <Inbox />}
+      {screen === 'inbox' && <Inbox user={user} />}
       {screen === 'themes' && <Themes onThemeClick={() => setScreen('themeDetail')} />}
       {screen === 'themeDetail' && <ThemeDetail onBack={() => setScreen('themes')} />}
-      {screen === 'chat' && <Chat />}
-      {screen === 'settings' && <Settings />}
+      {screen === 'chat' && <Chat user={user} />}
+      {screen === 'settings' && <Settings user={user} />}
 
       {screen !== 'themeDetail' && (
         <div style={{

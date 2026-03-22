@@ -1,7 +1,8 @@
 'use client'
 import { useState } from 'react'
+import { supabase } from '../../lib/supabase'
 
-export default function Settings() {
+export default function Settings({ user }) {
   const [lang, setLang] = useState('繁體中文')
   const [aiLayer, setAiLayer] = useState('cloud')
   const [surfaceNotif, setSurfaceNotif] = useState(true)
@@ -138,11 +139,19 @@ export default function Settings() {
           </div>
         ))}
 
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 14px', background: '#1C1C22', border: '1px solid #2A2A36',
-          borderRadius: '12px', marginBottom: '6px', cursor: 'pointer'
-        }}>
+        {user && (
+          <div style={{ fontSize: '11px', color: '#5C5B70', padding: '4px 2px', marginBottom: '4px' }}>
+            {user.email}
+          </div>
+        )}
+
+        <div
+          onClick={() => supabase.auth.signOut()}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 14px', background: '#1C1C22', border: '1px solid #2A2A36',
+            borderRadius: '12px', marginBottom: '6px', cursor: 'pointer'
+          }}>
           <span style={{ fontSize: '13px', color: '#FF6B6B' }}>登出</span>
         </div>
 
