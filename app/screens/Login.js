@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { colors, typography, shadow, radius } from '../styles/ios-theme'
 
 export default function Login({ onLogin }) {
   const [mode, setMode] = useState('login') // 'login' | 'register'
@@ -30,76 +31,141 @@ export default function Login({ onLogin }) {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', padding: '24px',
-      backgroundColor: '#0C0C0F'
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+      backgroundColor: colors.background,
+      fontFamily: typography.fontFamily,
     }}>
       <div style={{ width: '100%', maxWidth: '340px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ fontSize: '36px', marginBottom: '8px' }}>🧠</div>
-          <div style={{ fontSize: '24px', fontWeight: '800', color: '#F0EFF8' }}>Brainworm</div>
-          <div style={{ fontSize: '13px', color: '#9B9AAF', marginTop: '4px' }}>你的第二大腦</div>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <div style={{ fontSize: '56px', marginBottom: '12px' }}>🧠</div>
+          <div style={{ fontSize: 28, fontWeight: '700', color: colors.text }}>Brainworm</div>
+          <div style={{ fontSize: 13, color: colors.textTertiary, marginTop: '4px' }}>你的第二大腦</div>
         </div>
 
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#1C1C22', borderRadius: '12px', padding: '4px' }}>
-          {['login', 'register'].map(m => (
-            <div key={m} onClick={() => { setMode(m); setError(''); setMessage('') }} style={{
-              flex: 1, textAlign: 'center', padding: '8px', borderRadius: '9px', cursor: 'pointer',
-              fontSize: '13px', fontWeight: '600',
-              background: mode === m ? '#7C6AF7' : 'transparent',
-              color: mode === m ? 'white' : '#9B9AAF'
-            }}>{m === 'login' ? '登入' : '註冊'}</div>
-          ))}
-        </div>
+        <div style={{
+          background: colors.card,
+          borderRadius: radius.lg,
+          padding: '20px',
+          boxShadow: shadow.md,
+        }}>
+          {/* Segmented control */}
+          <div style={{
+            display: 'flex',
+            gap: '2px',
+            marginBottom: '20px',
+            background: 'rgba(118,118,128,0.12)',
+            borderRadius: radius.sm,
+            padding: '2px',
+          }}>
+            {['login', 'register'].map(m => (
+              <div
+                key={m}
+                onClick={() => { setMode(m); setError(''); setMessage('') }}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  padding: '7px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: '600',
+                  background: mode === m ? colors.card : 'transparent',
+                  color: mode === m ? colors.text : colors.textTertiary,
+                  boxShadow: mode === m ? shadow.sm : 'none',
+                  transition: 'all 0.2s',
+                }}
+              >{m === 'login' ? '登入' : '註冊'}</div>
+            ))}
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            style={{
-              background: '#1C1C22', border: '1px solid #2A2A36', borderRadius: '12px',
-              padding: '12px 14px', fontSize: '14px', color: '#F0EFF8', outline: 'none',
-              fontFamily: 'system-ui'
-            }}
-          />
-          <input
-            type="password"
-            placeholder="密碼"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            style={{
-              background: '#1C1C22', border: '1px solid #2A2A36', borderRadius: '12px',
-              padding: '12px 14px', fontSize: '14px', color: '#F0EFF8', outline: 'none',
-              fontFamily: 'system-ui'
-            }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              style={{
+                background: 'rgba(118,118,128,0.08)',
+                border: 'none',
+                borderRadius: radius.md,
+                padding: '14px 16px',
+                fontSize: 17,
+                color: colors.text,
+                outline: 'none',
+                fontFamily: typography.fontFamily,
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+            />
+            <input
+              type="password"
+              placeholder="密碼"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+              style={{
+                background: 'rgba(118,118,128,0.08)',
+                border: 'none',
+                borderRadius: radius.md,
+                padding: '14px 16px',
+                fontSize: 17,
+                color: colors.text,
+                outline: 'none',
+                fontFamily: typography.fontFamily,
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+            />
 
-          {error && (
-            <div style={{ fontSize: '12px', color: '#FF6B6B', padding: '8px 12px', background: 'rgba(255,107,107,0.1)', borderRadius: '8px' }}>
-              {error}
-            </div>
-          )}
-          {message && (
-            <div style={{ fontSize: '12px', color: '#4ADE80', padding: '8px 12px', background: 'rgba(74,222,128,0.1)', borderRadius: '8px' }}>
-              {message}
-            </div>
-          )}
+            {error && (
+              <div style={{
+                fontSize: 13,
+                color: colors.danger,
+                padding: '10px 12px',
+                background: 'rgba(255,59,48,0.08)',
+                borderRadius: radius.sm,
+              }}>
+                {error}
+              </div>
+            )}
+            {message && (
+              <div style={{
+                fontSize: 13,
+                color: colors.success,
+                padding: '10px 12px',
+                background: 'rgba(52,199,89,0.08)',
+                borderRadius: radius.sm,
+              }}>
+                {message}
+              </div>
+            )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            style={{
-              background: '#7C6AF7', border: 'none', borderRadius: '12px',
-              padding: '13px', fontSize: '14px', fontWeight: '700',
-              color: 'white', cursor: loading ? 'default' : 'pointer',
-              opacity: loading ? 0.7 : 1, marginTop: '4px'
-            }}
-          >
-            {loading ? '處理中...' : mode === 'login' ? '登入' : '建立帳號'}
-          </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              style={{
+                background: colors.primary,
+                border: 'none',
+                borderRadius: radius.md,
+                padding: '16px',
+                fontSize: 17,
+                fontWeight: '600',
+                color: 'white',
+                cursor: loading ? 'default' : 'pointer',
+                opacity: loading ? 0.7 : 1,
+                marginTop: '4px',
+                fontFamily: typography.fontFamily,
+                width: '100%',
+              }}
+            >
+              {loading ? '處理中...' : mode === 'login' ? '登入' : '建立帳號'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -7,6 +7,14 @@ import Themes from './screens/Themes'
 import ThemeDetail from './screens/ThemeDetail'
 import Chat from './screens/Chat'
 import Settings from './screens/Settings'
+import { colors, typography } from './styles/ios-theme'
+
+const TAB_ITEMS = [
+  { icon: '📥', label: 'Inbox', id: 'inbox' },
+  { icon: '🗺️', label: '主題', id: 'themes' },
+  { icon: '💬', label: '問 AI', id: 'chat' },
+  { icon: '⚙️', label: '設定', id: 'settings' },
+]
 
 export default function Home() {
   const [screen, setScreen] = useState('inbox')
@@ -29,8 +37,14 @@ export default function Home() {
   if (loading) {
     return (
       <div style={{
-        backgroundColor: '#0C0C0F', minHeight: '100vh', maxWidth: '390px',
-        margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        backgroundColor: colors.background,
+        minHeight: '100vh',
+        maxWidth: '390px',
+        margin: '0 auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: typography.fontFamily,
       }}>
         <div style={{ fontSize: '32px' }}>🧠</div>
       </div>
@@ -39,7 +53,7 @@ export default function Home() {
 
   if (!user) {
     return (
-      <div style={{ maxWidth: '390px', margin: '0 auto', fontFamily: 'system-ui, sans-serif', color: '#F0EFF8' }}>
+      <div style={{ maxWidth: '390px', margin: '0 auto', fontFamily: typography.fontFamily }}>
         <Login onLogin={() => {}} />
       </div>
     )
@@ -47,13 +61,13 @@ export default function Home() {
 
   return (
     <div style={{
-      backgroundColor: '#0C0C0F',
+      backgroundColor: colors.background,
       minHeight: '100vh',
       maxWidth: '390px',
       margin: '0 auto',
-      fontFamily: 'system-ui, sans-serif',
-      color: '#F0EFF8',
-      position: 'relative'
+      fontFamily: typography.fontFamily,
+      color: colors.text,
+      position: 'relative',
     }}>
       {screen === 'inbox' && <Inbox user={user} />}
       {screen === 'themes' && <Themes onThemeClick={() => setScreen('themeDetail')} />}
@@ -63,25 +77,46 @@ export default function Home() {
 
       {screen !== 'themeDetail' && (
         <div style={{
-          position: 'fixed', bottom: '0', left: '50%', transform: 'translateX(-50%)',
-          width: '390px', display: 'flex', justifyContent: 'space-around',
-          padding: '10px 10px 24px', borderTop: '1px solid #2A2A36',
-          background: '#141418', zIndex: 100
+          position: 'fixed',
+          bottom: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '390px',
+          display: 'flex',
+          justifyContent: 'space-around',
+          padding: '8px 0 28px',
+          borderTop: `1px solid ${colors.separator}`,
+          background: 'rgba(249,249,249,0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          zIndex: 100,
         }}>
-          {[
-            { icon: '📥', label: 'Inbox', id: 'inbox' },
-            { icon: '🗺️', label: '主題', id: 'themes' },
-            { icon: '💬', label: '問 AI', id: 'chat' },
-            { icon: '⚙️', label: '設定', id: 'settings' }
-          ].map(item => (
-            <div key={item.id} onClick={() => setScreen(item.id)} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center',
-              gap: '3px', cursor: 'pointer', padding: '4px 12px', borderRadius: '10px'
-            }}>
-              <span style={{ fontSize: '20px', opacity: screen === item.id ? 1 : 0.4 }}>{item.icon}</span>
-              <span style={{ fontSize: '10px', fontWeight: '500', color: screen === item.id ? '#7C6AF7' : '#5C5B70' }}>{item.label}</span>
-            </div>
-          ))}
+          {TAB_ITEMS.map(item => {
+            const active = screen === item.id
+            return (
+              <div
+                key={item.id}
+                onClick={() => setScreen(item.id)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '2px',
+                  cursor: 'pointer',
+                  padding: '4px 16px',
+                  minWidth: '60px',
+                }}
+              >
+                <span style={{ fontSize: '22px', opacity: active ? 1 : 0.45 }}>{item.icon}</span>
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: '500',
+                  color: active ? colors.primary : colors.textTertiary,
+                  letterSpacing: '-0.1px',
+                }}>{item.label}</span>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

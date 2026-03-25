@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { colors, typography, shadow, radius } from '../styles/ios-theme'
 
 const initialMessages = [
   {
@@ -48,88 +49,115 @@ export default function Chat() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', paddingBottom: '80px' }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
+      paddingBottom: '80px',
+      fontFamily: typography.fontFamily,
+      backgroundColor: colors.background,
+    }}>
+      {/* Header */}
       <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center', padding: '20px 16px 8px'
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+        padding: '56px 16px 8px',
       }}>
         <div>
-          <div style={{ fontSize: '22px', fontWeight: '800' }}>問 AI</div>
-          <div style={{ fontSize: '12px', color: '#9B9AAF', marginTop: '2px' }}>基於你的知識庫回答</div>
+          <div style={{ fontSize: 34, fontWeight: '700', color: colors.text, letterSpacing: 0.37 }}>問 AI</div>
+          <div style={{ fontSize: 13, color: colors.textTertiary, marginTop: '2px' }}>基於你的知識庫回答</div>
         </div>
         <div style={{
-          width: '36px', height: '36px', borderRadius: '10px',
-          background: '#1C1C22', border: '1px solid #2A2A36',
+          width: '36px', height: '36px', borderRadius: radius.sm,
+          background: colors.card,
+          boxShadow: shadow.sm,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '16px', cursor: 'pointer'
+          fontSize: 18, cursor: 'pointer',
         }}>⊕</div>
       </div>
 
+      {/* Scope selector */}
       <div style={{ padding: '0 16px 8px', position: 'relative' }}>
         <div
           onClick={() => setShowScopes(!showScopes)}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '8px 12px', background: '#1C1C22',
-            border: '1px solid #2A2A36', borderRadius: '10px',
-            cursor: 'pointer'
+            padding: '10px 14px',
+            background: colors.card,
+            borderRadius: radius.md,
+            cursor: 'pointer',
+            boxShadow: shadow.sm,
           }}>
-          <span style={{ fontSize: '11px', color: '#9B9AAF' }}>範圍：</span>
+          <span style={{ fontSize: 13, color: colors.textSecondary }}>範圍：</span>
           <span style={{
-            padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '600',
-            background: 'rgba(124,106,247,0.15)', border: '1px solid rgba(124,106,247,0.3)', color: '#7C6AF7'
+            padding: '2px 10px', borderRadius: 6, fontSize: 13, fontWeight: '600',
+            background: 'rgba(0,122,255,0.1)', color: colors.primary,
           }}>{scope}</span>
-          <span style={{ fontSize: '11px', color: '#5C5B70', marginLeft: 'auto' }}>切換 ›</span>
+          <span style={{ fontSize: 13, color: colors.textTertiary, marginLeft: 'auto' }}>切換 ›</span>
         </div>
         {showScopes && (
           <div style={{
-            position: 'absolute', top: '48px', left: '16px', right: '16px',
-            background: '#1C1C22', border: '1px solid #2A2A36',
-            borderRadius: '12px', zIndex: 50, overflow: 'hidden'
+            position: 'absolute', top: '52px', left: '16px', right: '16px',
+            background: colors.card,
+            borderRadius: radius.md,
+            zIndex: 50,
+            overflow: 'hidden',
+            boxShadow: shadow.lg,
           }}>
-            {scopes.map(s => (
+            {scopes.map((s, i) => (
               <div
                 key={s}
                 onClick={() => { setScope(s); setShowScopes(false) }}
                 style={{
-                  padding: '10px 14px', fontSize: '13px', cursor: 'pointer',
-                  color: scope === s ? '#7C6AF7' : '#F0EFF8',
-                  background: scope === s ? 'rgba(124,106,247,0.1)' : 'transparent',
-                  borderBottom: '1px solid #2A2A36'
+                  padding: '12px 16px', fontSize: 15, cursor: 'pointer',
+                  color: scope === s ? colors.primary : colors.text,
+                  background: scope === s ? 'rgba(0,122,255,0.06)' : 'transparent',
+                  borderBottom: i < scopes.length - 1 ? `1px solid ${colors.separator}` : 'none',
                 }}>{s}</div>
             ))}
           </div>
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         {messages.map(msg => (
           <div key={msg.id} style={{
-            display: 'flex', gap: '8px', alignItems: 'flex-start',
-            flexDirection: msg.role === 'user' ? 'row-reverse' : 'row'
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'flex-end',
+            flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
           }}>
-            <div style={{
-              width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
-              background: msg.role === 'ai' ? 'linear-gradient(135deg, #7C6AF7, #4ECDC4)' : '#2A2A36',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px'
-            }}>{msg.role === 'ai' ? '🧠' : '😊'}</div>
-            <div style={{ maxWidth: '80%' }}>
+            {msg.role === 'ai' && (
               <div style={{
-                padding: '10px 12px', borderRadius: '12px', fontSize: '12px', lineHeight: '1.6',
-                background: msg.role === 'ai' ? '#1C1C22' : '#7C6AF7',
-                border: msg.role === 'ai' ? '1px solid #2A2A36' : 'none',
-                color: '#F0EFF8',
-                borderTopLeftRadius: msg.role === 'ai' ? '4px' : '12px',
-                borderTopRightRadius: msg.role === 'user' ? '4px' : '12px',
-                whiteSpace: 'pre-line'
+                width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0,
+                background: 'linear-gradient(135deg, #007AFF, #34C759)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+              }}>🧠</div>
+            )}
+            <div style={{ maxWidth: '78%' }}>
+              <div style={{
+                padding: '10px 14px',
+                borderRadius: msg.role === 'user' ? `${radius.lg}px ${radius.lg}px 4px ${radius.lg}px` : `${radius.lg}px ${radius.lg}px ${radius.lg}px 4px`,
+                fontSize: 15,
+                lineHeight: '1.5',
+                background: msg.role === 'user' ? colors.primary : colors.card,
+                color: msg.role === 'user' ? 'white' : colors.text,
+                boxShadow: shadow.sm,
+                whiteSpace: 'pre-line',
               }}>{msg.text}</div>
               {msg.sources && msg.sources.length > 0 && (
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
                   {msg.sources.map(s => (
                     <span key={s} style={{
-                      padding: '2px 8px', background: '#1C1C22',
-                      border: '1px solid #2A2A36', borderRadius: '6px',
-                      fontSize: '10px', color: '#9B9AAF', cursor: 'pointer'
+                      padding: '3px 10px',
+                      background: colors.card,
+                      borderRadius: 20,
+                      fontSize: 12,
+                      color: colors.textSecondary,
+                      cursor: 'pointer',
+                      boxShadow: shadow.sm,
                     }}>{s}</span>
                   ))}
                 </div>
@@ -139,9 +167,15 @@ export default function Chat() {
         ))}
       </div>
 
+      {/* Input bar */}
       <div style={{
-        display: 'flex', gap: '6px', padding: '10px 16px 6px',
-        borderTop: '1px solid #2A2A36', background: '#0C0C0F'
+        display: 'flex',
+        gap: '8px',
+        padding: '10px 16px 12px',
+        borderTop: `1px solid ${colors.separator}`,
+        background: 'rgba(249,249,249,0.9)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
       }}>
         <input
           value={input}
@@ -149,17 +183,33 @@ export default function Chat() {
           onKeyDown={e => e.key === 'Enter' && sendMessage()}
           placeholder="問任何問題..."
           style={{
-            flex: 1, background: '#1C1C22', border: '1px solid #2A2A36',
-            borderRadius: '10px', padding: '8px 12px', fontSize: '12px',
-            color: '#F0EFF8', outline: 'none', fontFamily: 'system-ui'
+            flex: 1,
+            background: colors.card,
+            border: 'none',
+            borderRadius: 22,
+            padding: '10px 16px',
+            fontSize: 15,
+            color: colors.text,
+            outline: 'none',
+            fontFamily: typography.fontFamily,
+            boxShadow: shadow.sm,
           }}
         />
         <button
           onClick={sendMessage}
           style={{
-            width: '34px', height: '34px', background: '#7C6AF7',
-            border: 'none', borderRadius: '10px', cursor: 'pointer',
-            fontSize: '14px', color: 'white'
+            width: '36px', height: '36px',
+            background: colors.primary,
+            border: 'none',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            fontSize: 16,
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            alignSelf: 'center',
           }}>↑</button>
       </div>
     </div>
