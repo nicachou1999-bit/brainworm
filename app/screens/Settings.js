@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { colors, typography, shadow, radius } from '../styles/ios-theme'
 import { useTheme } from '../context/ThemeContext'
+import Cleanup from './Cleanup'
 
 function SectionHeader({ title, isDark }) {
   return (
@@ -98,6 +99,25 @@ export default function Settings({ user }) {
   const [cardNotif, setCardNotif] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
 
+  // Cleanup
+  const [cleanupCount, setCleanupCount] = useState(null)
+  const [showCleanup, setShowCleanup] = useState(false)
+
+  useEffect(() => {
+    async function fetchCleanupCount() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const res = await fetch('/api/cleanup-suggestions', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        const json = await res.json()
+        setCleanupCount(json.total ?? (json.suggestions?.length || 0))
+      } catch {}
+    }
+    fetchCleanupCount()
+  }, [])
+
   useEffect(() => {
     setIsInstalled(window.matchMedia('(display-mode: standalone)').matches)
   }, [])
@@ -192,6 +212,10 @@ export default function Settings({ user }) {
     navigator.clipboard.writeText(`https://brainworm.app?ref=${quota.referral_code}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (showCleanup) {
+    return <Cleanup onClose={() => setShowCleanup(false)} />
   }
 
   return (
@@ -569,6 +593,29 @@ export default function Settings({ user }) {
             </GroupedList>
           </>
         )}
+
+        {/* Tools section */}
+        <SectionHeader title="工具" isDark={isDark} />
+        <GroupedList isDark={isDark}>
+          <ListRow
+            label="🧹 智慧清理建議"
+            last
+            isDark={isDark}
+            onClick={() => setShowCleanup(true)}
+            right={
+              <span style={{
+                fontSize: 15,
+                fontWeight: '600',
+                color: cleanupCount > 0 ? colors.warning : subtext,
+                minWidth: '20px',
+                textAlign: 'right',
+                transition: 'color 0.3s',
+              }}>
+                {cleanupCount === null ? '' : `${cleanupCount}張`}
+              </span>
+            }
+          />
+        </GroupedList>
 
         {/* Account section */}
         <SectionHeader title="帳號" isDark={isDark} />
