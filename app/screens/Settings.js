@@ -169,8 +169,8 @@ export default function Settings({ user }) {
       })
       const json = await res.json()
       if (json.success) {
-        setReferralMessage('🎉 已兌換！獲得 +5 次 AI 額度')
-        setQuota(q => ({ ...q, referred_by: 'done', bonus_ai_credits: (q?.bonus_ai_credits || 0) + 5 }))
+        setReferralMessage(`🎉 已兌換！${json.message || '獲得 +10 次 AI 額度'}`)
+        setQuota(q => ({ ...q, referred_by: 'done', bonus_ai_credits: (q?.bonus_ai_credits || 0) + 10 }))
       } else {
         setReferralError(json.error || '兌換失敗')
       }
@@ -457,8 +457,39 @@ export default function Settings({ user }) {
             <div style={{ fontSize: 13, color: subtext, textAlign: 'center', marginBottom: '12px', transition: 'color 0.3s' }}>
               {copied ? '已複製！' : '點擊推薦碼即可複製'}
             </div>
-            <div style={{ fontSize: 14, color: subtext, textAlign: 'center', marginBottom: '16px', transition: 'color 0.3s' }}>
-              已成功推薦 <strong>{quota?.total_referrals || 0}</strong> 人，額外獲得 <strong>{(quota?.total_referrals || 0) * 10}</strong> 次 AI 額度
+            <div style={{ fontSize: 14, color: subtext, textAlign: 'center', marginBottom: '10px', transition: 'color 0.3s' }}>
+              你已成功推薦 <strong>{quota?.total_referrals || 0}</strong> 人
+            </div>
+            {/* Milestone progress indicators */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '16px' }}>
+              {[
+                { count: 1, label: '1人', icon: '🎯' },
+                { count: 5, label: '5人', icon: '🔓無限摘要' },
+                { count: 10, label: '10人', icon: '🏆永久升級' },
+              ].map(({ count, label, icon }) => {
+                const reached = (quota?.total_referrals || 0) >= count
+                return (
+                  <div key={count} style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '3px',
+                  }}>
+                    <div style={{
+                      fontSize: 12,
+                      color: reached ? colors.success : subtext,
+                      fontWeight: reached ? '600' : '400',
+                      transition: 'color 0.3s',
+                    }}>{label}</div>
+                    <div style={{
+                      fontSize: 11,
+                      color: reached ? colors.success : subtext,
+                      opacity: reached ? 1 : 0.5,
+                      transition: 'color 0.3s',
+                    }}>{icon}</div>
+                  </div>
+                )
+              })}
             </div>
             <div
               onClick={copyReferralLink}
