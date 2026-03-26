@@ -52,6 +52,10 @@ export default function Inbox({ user, onNavigate }) {
   const [selectedTags, setSelectedTags] = useState([])
   const [searchPage, setSearchPage] = useState(1)
 
+  // Summary edit state
+  const [editingSummaryId, setEditingSummaryId] = useState(null)
+  const [editingSummaryText, setEditingSummaryText] = useState('')
+
   // Voice input state
   const [voiceText, setVoiceText] = useState('')
   const [voiceHint, setVoiceHint] = useState('')
@@ -263,6 +267,14 @@ export default function Inbox({ user, onNavigate }) {
   function dismissSuggestion() {
     setClassifySuggestion(null)
     if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current)
+  }
+
+  async function saveSummary(cardId) {
+    const newText = editingSummaryText.trim()
+    setEditingSummaryId(null)
+    setCards(prev => prev.map(c => c.id === cardId ? { ...c, summary: newText } : c))
+    await supabase.from('cards').update({ summary: newText }).eq('id', cardId)
+    showToast('已更新摘要 ✓')
   }
 
   function showToast(message) {
@@ -853,9 +865,59 @@ export default function Inbox({ user, onNavigate }) {
                   <HighlightText text={card.title} query={searchText} />
                 </div>
                 {card.summary && card.summary !== '正在處理中...' && (
-                  <div style={{ fontSize: 13, color: subtext, lineHeight: '1.5', marginBottom: '10px', transition: 'color 0.3s' }}>
-                    <HighlightText text={card.summary} query={searchText} />
-                  </div>
+                  editingSummaryId === card.id ? (
+                    <div style={{ marginBottom: '10px' }}>
+                      <textarea
+                        value={editingSummaryText}
+                        onChange={e => setEditingSummaryText(e.target.value)}
+                        style={{
+                          width: '100%',
+                          minHeight: 80,
+                          fontSize: 14,
+                          padding: '8px 10px',
+                          borderRadius: 8,
+                          border: '1.5px solid #007AFF',
+                          background: isDark ? '#1C1C1E' : '#FFFFFF',
+                          color: 'inherit',
+                          resize: 'none',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          fontFamily: typography.fontFamily,
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); saveSummary(card.id) }}
+                          style={{
+                            padding: '6px 16px', borderRadius: 8, border: 'none',
+                            background: '#007AFF', color: 'white', fontSize: 13,
+                            fontWeight: '600', cursor: 'pointer', fontFamily: typography.fontFamily,
+                          }}
+                        >儲存</button>
+                        <button
+                          onClick={e => { e.stopPropagation(); setEditingSummaryId(null) }}
+                          style={{
+                            padding: '6px 12px', borderRadius: 8, border: 'none',
+                            background: 'none', color: subtext, fontSize: 13,
+                            fontWeight: '500', cursor: 'pointer', fontFamily: typography.fontFamily,
+                          }}
+                        >取消</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ marginBottom: '10px' }}>
+                      <div
+                        onClick={e => { e.stopPropagation(); setEditingSummaryId(card.id); setEditingSummaryText(card.summary) }}
+                        style={{ fontSize: 13, color: subtext, lineHeight: '1.5', cursor: 'text', transition: 'color 0.3s' }}
+                      >
+                        <HighlightText text={card.summary} query={searchText} />
+                      </div>
+                      <div
+                        onClick={e => { e.stopPropagation(); setEditingSummaryId(card.id); setEditingSummaryText(card.summary) }}
+                        style={{ fontSize: 11, color: '#8E8E93', cursor: 'pointer', marginTop: '4px' }}
+                      >✦ AI 生成，點此修改</div>
+                    </div>
+                  )
                 )}
               </div>
             </div>
