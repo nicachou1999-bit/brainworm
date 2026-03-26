@@ -69,7 +69,7 @@ export default function Home() {
       color: colors.text,
       position: 'relative',
     }}>
-      {screen === 'inbox' && <Inbox user={user} />}
+      {screen === 'inbox' && <Inbox user={user} onNavigate={setScreen} />}
       {screen === 'themes' && <Themes onThemeClick={() => setScreen('themeDetail')} />}
       {screen === 'themeDetail' && <ThemeDetail onBack={() => setScreen('themes')} />}
       {screen === 'chat' && <Chat user={user} />}

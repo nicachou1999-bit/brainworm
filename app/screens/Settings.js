@@ -92,6 +92,35 @@ export default function Settings({ user }) {
   const langs = ['繁體中文', 'English', 'Español']
   const [showLangs, setShowLangs] = useState(false)
 
+  // Weekly report state
+  const [reportExpanded, setReportExpanded] = useState(false)
+  const [reportLoading, setReportLoading] = useState(false)
+  const [reportData, setReportData] = useState(null)
+  const [reportError, setReportError] = useState('')
+
+  async function fetchWeeklyReport() {
+    if (reportLoading) return
+    setReportLoading(true)
+    setReportError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/weekly-report', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || '載入失敗')
+      setReportData(json)
+    } catch {
+      setReportError('無法載入週報，請稍後再試')
+    }
+    setReportLoading(false)
+  }
+
+  function handleToggleReport() {
+    if (!reportExpanded && !reportData) fetchWeeklyReport()
+    setReportExpanded(v => !v)
+  }
+
   // Referral state
   const [quota, setQuota] = useState(null)
   const [referralInput, setReferralInput] = useState('')
@@ -251,6 +280,109 @@ export default function Settings({ user }) {
               <Toggle value={item.value} onToggle={item.toggle} />
             </div>
           ))}
+        </GroupedList>
+
+        {/* Weekly report section */}
+        <SectionHeader title="📊 本週週報" />
+        <GroupedList>
+          <div style={{ padding: '16px' }}>
+            {reportData && !reportData.empty && (
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '14px' }}>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontSize: 28, fontWeight: '700', color: colors.primary }}>{reportData.cardCount}</div>
+                  <div style={{ fontSize: 12, color: colors.textTertiary, marginTop: '2px' }}>本週卡片</div>
+                </div>
+                <div style={{ width: '1px', background: colors.separator }} />
+                <div style={{ flex: 2, display: 'flex', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: colors.textTertiary, marginBottom: '2px' }}>最活躍主題</div>
+                    <div style={{ fontSize: 15, fontWeight: '600', color: colors.text }}>{reportData.topTheme}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {reportData && reportData.empty && !reportLoading && (
+              <div style={{ fontSize: 14, color: colors.textTertiary, textAlign: 'center', padding: '8px 0' }}>
+                本週還沒有卡片，快去收集知識吧！
+              </div>
+            )}
+            <div
+              onClick={handleToggleReport}
+              style={{
+                background: colors.primary,
+                borderRadius: radius.md,
+                padding: '12px',
+                textAlign: 'center',
+                color: 'white',
+                fontSize: 15,
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              {reportExpanded ? '收起週報' : '查看 AI 週報'}
+            </div>
+
+            {reportExpanded && (
+              <div style={{ marginTop: '16px' }}>
+                {reportLoading && (
+                  <div style={{ fontSize: 14, color: colors.textTertiary, textAlign: 'center', padding: '16px 0' }}>
+                    🤔 AI 正在整理本週內容...
+                  </div>
+                )}
+                {reportError && (
+                  <div style={{ fontSize: 13, color: colors.danger, padding: '10px 12px', background: 'rgba(255,59,48,0.08)', borderRadius: radius.sm }}>
+                    {reportError}
+                  </div>
+                )}
+                {reportData && reportData.report && (
+                  <div>
+                    <div style={{
+                      fontSize: 20,
+                      fontWeight: '700',
+                      color: colors.text,
+                      lineHeight: '1.4',
+                      marginBottom: '16px',
+                      textAlign: 'center',
+                    }}>
+                      {reportData.report.headline}
+                    </div>
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ fontSize: 12, fontWeight: '600', color: colors.textTertiary, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
+                        AI 精選亮點
+                      </div>
+                      {reportData.report.highlights?.map((h, i) => (
+                        <div key={i} style={{
+                          display: 'flex',
+                          gap: '10px',
+                          marginBottom: '8px',
+                          alignItems: 'flex-start',
+                        }}>
+                          <span style={{ fontSize: 14, color: colors.primary, fontWeight: '700', flexShrink: 0 }}>#{i + 1}</span>
+                          <span style={{ fontSize: 14, color: colors.text, lineHeight: '1.5' }}>{h}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {reportData.report.insight && (
+                      <div style={{
+                        background: 'rgba(0,122,255,0.06)',
+                        borderRadius: radius.md,
+                        padding: '12px 14px',
+                        marginBottom: '12px',
+                      }}>
+                        <div style={{ fontSize: 12, fontWeight: '600', color: colors.primary, marginBottom: '4px' }}>AI 洞察</div>
+                        <div style={{ fontSize: 14, color: colors.text, lineHeight: '1.5' }}>{reportData.report.insight}</div>
+                      </div>
+                    )}
+                    {reportData.report.encouragement && (
+                      <div style={{ fontSize: 15, color: colors.textSecondary, textAlign: 'center', fontStyle: 'italic' }}>
+                        ✨ {reportData.report.encouragement}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </GroupedList>
 
         {/* Referral - invite friends */}
