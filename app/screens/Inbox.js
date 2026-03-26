@@ -19,6 +19,7 @@ export default function Inbox({ user, onNavigate }) {
   const text = isDark ? '#FFFFFF' : '#1C1C1E'
   const subtext = isDark ? '#8E8E93' : '#6D6D72'
   const inputBg = isDark ? '#3A3A3C' : 'rgba(118,118,128,0.08)'
+  const searchBg = isDark ? '#3A3A3C' : '#E5E5EA'
 
   const [cards, setCards] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,6 +31,9 @@ export default function Inbox({ user, onNavigate }) {
   const [classifySuggestion, setClassifySuggestion] = useState(null)
   // classifySuggestion: { cardId, themeId, themeName } | null
   const dismissTimerRef = useRef(null)
+  const [searchText, setSearchText] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
+  const searchInputRef = useRef(null)
 
   // Weekly banner state
   const [weeklyBanner, setWeeklyBanner] = useState(null) // { headline } | null
@@ -232,6 +236,23 @@ export default function Inbox({ user, onNavigate }) {
     if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current)
   }
 
+  function cancelSearch() {
+    setSearchText('')
+    setSearchFocused(false)
+    searchInputRef.current?.blur()
+  }
+
+  const filtered = cards.filter(card => {
+    if (!searchText) return true
+    const q = searchText.toLowerCase()
+    return (
+      card.title?.toLowerCase().includes(q) ||
+      card.summary?.toLowerCase().includes(q) ||
+      card.primary_tags?.some(t => t.toLowerCase().includes(q)) ||
+      card.secondary_tags?.some(t => t.toLowerCase().includes(q))
+    )
+  })
+
   function timeAgo(dateStr) {
     const diff = Date.now() - new Date(dateStr).getTime()
     const mins = Math.floor(diff / 60000)
@@ -255,15 +276,91 @@ export default function Inbox({ user, onNavigate }) {
 
       {/* Large title header */}
       <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        padding: '56px 16px 8px',
+        padding: '56px 16px 0px',
+        overflow: 'hidden',
       }}>
-        <div>
+        {/* Title row — shrinks/hides when searching */}
+        <div style={{
+          maxHeight: searchFocused ? '0px' : '64px',
+          opacity: searchFocused ? 0 : 1,
+          overflow: 'hidden',
+          transition: 'max-height 0.2s ease, opacity 0.2s ease',
+          marginBottom: searchFocused ? '0' : '8px',
+        }}>
           <div style={{ fontSize: 34, fontWeight: '700', color: text, letterSpacing: 0.37, transition: 'color 0.3s' }}>Inbox</div>
           <div style={{ fontSize: 13, color: subtext, marginTop: '2px', transition: 'color 0.3s' }}>
             {loading ? '載入中...' : `${cards.length} 張卡片`}
+          </div>
+        </div>
+
+        {/* Search bar row */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '12px',
+        }}>
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            background: searchBg,
+            borderRadius: '10px',
+            height: '36px',
+            padding: '0 10px',
+            gap: '6px',
+            transition: 'background 0.3s',
+          }}>
+            <span style={{ fontSize: '14px', color: '#8E8E93', flexShrink: 0, lineHeight: 1 }}>🔍</span>
+            <input
+              ref={searchInputRef}
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => { if (!searchText) setSearchFocused(false) }}
+              placeholder="搜尋卡片..."
+              style={{
+                flex: 1,
+                border: 'none',
+                background: 'transparent',
+                fontSize: '15px',
+                color: text,
+                outline: 'none',
+                fontFamily: 'inherit',
+                minWidth: 0,
+              }}
+            />
+            {searchText && (
+              <span
+                onClick={() => setSearchText('')}
+                style={{
+                  fontSize: '16px',
+                  color: '#8E8E93',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}
+              >✕</span>
+            )}
+          </div>
+
+          {/* 取消按鈕 */}
+          <div style={{
+            maxWidth: searchFocused ? '40px' : '0px',
+            opacity: searchFocused ? 1 : 0,
+            overflow: 'hidden',
+            transition: 'max-width 0.2s ease, opacity 0.2s ease',
+            whiteSpace: 'nowrap',
+          }}>
+            <span
+              onClick={cancelSearch}
+              style={{
+                fontSize: '15px',
+                color: '#007AFF',
+                cursor: 'pointer',
+                fontWeight: '400',
+              }}
+            >取消</span>
           </div>
         </div>
       </div>
@@ -389,7 +486,7 @@ export default function Inbox({ user, onNavigate }) {
           </div>
         )}
 
-        {cards.length > 0 && (
+        {filtered.length > 0 && (
           <div style={{
             fontSize: 13,
             fontWeight: '600',
@@ -398,7 +495,7 @@ export default function Inbox({ user, onNavigate }) {
             marginBottom: '8px',
             paddingLeft: '4px',
             transition: 'color 0.3s',
-          }}>最近新增</div>
+          }}>{searchText ? `${filtered.length} 筆結果` : '最近新增'}</div>
         )}
 
         {loading && (
@@ -417,7 +514,16 @@ export default function Inbox({ user, onNavigate }) {
           </div>
         )}
 
-        {cards.map(card => (
+        {!loading && searchText && filtered.length === 0 && (
+          <div style={{
+            textAlign: 'center', padding: '60px 0',
+            color: subtext, fontSize: 15, lineHeight: '2',
+          }}>
+            🔍 找不到「{searchText}」相關的卡片
+          </div>
+        )}
+
+        {filtered.map(card => (
           <div key={card.id} style={{
             background: cardBg,
             borderRadius: radius.lg,
