@@ -131,6 +131,22 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 ```
 
+```sql
+-- 推薦使用記錄表（分級獎勵系統）
+-- 里程碑：第 1 次 +10 額度，第 5 次 +50 額度，第 10 次 +200 額度
+CREATE TABLE IF NOT EXISTS referral_uses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  referrer_id UUID REFERENCES auth.users(id),
+  redeemer_id UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(redeemer_id)  -- 每位用戶只能被推薦一次
+);
+
+-- RLS：只允許 service role 存取（由後端 API 操作）
+ALTER TABLE referral_uses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role full access" ON referral_uses USING (true) WITH CHECK (true);
+```
+
 5. 在 Vercel 加入第四個環境變數 `SUPABASE_SERVICE_ROLE_KEY`（Supabase → Settings → API → service_role secret）
 
 ---
