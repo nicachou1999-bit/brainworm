@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { colors, typography, shadow, radius } from '../styles/ios-theme'
 
@@ -91,6 +91,66 @@ export default function Settings({ user }) {
 
   const langs = ['繁體中文', 'English', 'Español']
   const [showLangs, setShowLangs] = useState(false)
+
+  // Referral state
+  const [quota, setQuota] = useState(null)
+  const [referralInput, setReferralInput] = useState('')
+  const [referralLoading, setReferralLoading] = useState(false)
+  const [referralMessage, setReferralMessage] = useState('')
+  const [referralError, setReferralError] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('user_quotas')
+      .select('referral_code, referred_by, bonus_ai_credits, total_referrals')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => { if (data) setQuota(data) })
+  }, [user])
+
+  async function handleRedeemReferral() {
+    if (!referralInput || referralLoading) return
+    setReferralLoading(true)
+    setReferralError('')
+    setReferralMessage('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/referral', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ code: referralInput.toUpperCase() }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setReferralMessage('🎉 已兌換！獲得 +5 次 AI 額度')
+        setQuota(q => ({ ...q, referred_by: 'done', bonus_ai_credits: (q?.bonus_ai_credits || 0) + 5 }))
+      } else {
+        setReferralError(json.error || '兌換失敗')
+      }
+    } catch {
+      setReferralError('網路錯誤，請稍後再試')
+    }
+    setReferralLoading(false)
+  }
+
+  function copyReferralCode() {
+    if (!quota?.referral_code) return
+    navigator.clipboard.writeText(quota.referral_code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  function copyReferralLink() {
+    if (!quota?.referral_code) return
+    navigator.clipboard.writeText(`https://brainworm.app?ref=${quota.referral_code}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div style={{ paddingBottom: '90px', fontFamily: typography.fontFamily }}>
@@ -192,6 +252,110 @@ export default function Settings({ user }) {
             </div>
           ))}
         </GroupedList>
+
+        {/* Referral - invite friends */}
+        <SectionHeader title="邀請好友" />
+        <GroupedList>
+          <div style={{ padding: '16px' }}>
+            <div style={{ fontSize: 13, color: colors.textTertiary, marginBottom: '10px' }}>你的推薦碼</div>
+            <div
+              onClick={copyReferralCode}
+              style={{
+                fontSize: 32,
+                fontWeight: '700',
+                color: colors.primary,
+                letterSpacing: '0.12em',
+                cursor: 'pointer',
+                textAlign: 'center',
+                padding: '8px 0',
+                userSelect: 'none',
+              }}
+            >
+              {quota?.referral_code || '------'}
+            </div>
+            <div style={{ fontSize: 13, color: colors.textTertiary, textAlign: 'center', marginBottom: '12px' }}>
+              {copied ? '已複製！' : '點擊推薦碼即可複製'}
+            </div>
+            <div style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginBottom: '16px' }}>
+              已成功推薦 <strong>{quota?.total_referrals || 0}</strong> 人，額外獲得 <strong>{(quota?.total_referrals || 0) * 10}</strong> 次 AI 額度
+            </div>
+            <div
+              onClick={copyReferralLink}
+              style={{
+                background: colors.primary,
+                borderRadius: radius.md,
+                padding: '12px',
+                textAlign: 'center',
+                color: 'white',
+                fontSize: 15,
+                fontWeight: '600',
+                cursor: 'pointer',
+              }}
+            >
+              🔗 複製邀請連結
+            </div>
+          </div>
+        </GroupedList>
+
+        {/* Referral - redeem code (only if not yet used) */}
+        {quota && !quota.referred_by && (
+          <>
+            <SectionHeader title="輸入邀請碼" />
+            <GroupedList>
+              <div style={{ padding: '16px' }}>
+                <div style={{ fontSize: 13, color: colors.textTertiary, marginBottom: '10px' }}>
+                  輸入好友的推薦碼，雙方各獲得額外 AI 額度
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    value={referralInput}
+                    onChange={e => setReferralInput(e.target.value.toUpperCase().slice(0, 6))}
+                    placeholder="例：BW3X9K"
+                    maxLength={6}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(118,118,128,0.08)',
+                      border: 'none',
+                      borderRadius: radius.md,
+                      padding: '12px 14px',
+                      fontSize: 17,
+                      fontWeight: '600',
+                      letterSpacing: '0.1em',
+                      color: colors.text,
+                      outline: 'none',
+                      fontFamily: typography.fontFamily,
+                    }}
+                  />
+                  <div
+                    onClick={handleRedeemReferral}
+                    style={{
+                      background: referralLoading ? 'rgba(0,122,255,0.5)' : colors.primary,
+                      borderRadius: radius.md,
+                      padding: '12px 18px',
+                      color: 'white',
+                      fontSize: 15,
+                      fontWeight: '600',
+                      cursor: referralLoading ? 'default' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {referralLoading ? '...' : '兌換'}
+                  </div>
+                </div>
+                {referralMessage && (
+                  <div style={{ marginTop: '10px', fontSize: 13, color: colors.success, padding: '10px 12px', background: 'rgba(52,199,89,0.08)', borderRadius: radius.sm }}>
+                    {referralMessage}
+                  </div>
+                )}
+                {referralError && (
+                  <div style={{ marginTop: '10px', fontSize: 13, color: colors.danger, padding: '10px 12px', background: 'rgba(255,59,48,0.08)', borderRadius: radius.sm }}>
+                    {referralError}
+                  </div>
+                )}
+              </div>
+            </GroupedList>
+          </>
+        )}
 
         {/* Account section */}
         <SectionHeader title="帳號" />

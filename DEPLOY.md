@@ -77,6 +77,47 @@ create policy "用戶只能存取自己的 chat_summaries" on chat_summaries
 
 4. 看到 **Success** 就完成了
 
+接著，再執行以下 SQL 建立推薦碼系統：
+
+```sql
+-- 用戶配額表（推薦碼 & AI 額度）
+CREATE TABLE IF NOT EXISTS user_quotas (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  referral_code TEXT UNIQUE NOT NULL,
+  referred_by UUID REFERENCES auth.users(id),
+  bonus_ai_credits INTEGER DEFAULT 0,
+  total_referrals INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS
+ALTER TABLE user_quotas ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own quota" ON user_quotas FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can update own quota" ON user_quotas FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Service role full access" ON user_quotas USING (true) WITH CHECK (true);
+
+-- 產生推薦碼 function
+CREATE OR REPLACE FUNCTION generate_referral_code() RETURNS TEXT AS $$
+  SELECT string_agg(substr('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', floor(random()*32)::int+1, 1), '')
+  FROM generate_series(1, 6);
+$$ LANGUAGE sql;
+
+-- 新用戶自動建立配額記錄
+CREATE OR REPLACE FUNCTION handle_new_user() RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO user_quotas (user_id, referral_code)
+  VALUES (NEW.id, generate_referral_code());
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+```
+
+5. 在 Vercel 加入第四個環境變數 `SUPABASE_SERVICE_ROLE_KEY`（Supabase → Settings → API → service_role secret）
+
 ---
 
 ## 第三步：部署到 Vercel
