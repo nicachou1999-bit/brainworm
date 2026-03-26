@@ -83,6 +83,13 @@ ALTER TABLE cards ADD COLUMN IF NOT EXISTS theme_id UUID REFERENCES themes(id);
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS image_url TEXT;
 ```
 
+```sql
+-- 新增間隔複習欄位（Spaced Repetition）
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS review_count INTEGER DEFAULT 0;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS next_review_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS last_reviewed_at TIMESTAMPTZ;
+```
+
 4. 看到 **Success** 就完成了
 
 接著，再執行以下 SQL 建立推薦碼系統：
