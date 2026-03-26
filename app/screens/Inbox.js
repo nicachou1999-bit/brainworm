@@ -34,6 +34,7 @@ export default function Inbox({ user, onNavigate }) {
   const [searchText, setSearchText] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
   const searchInputRef = useRef(null)
+  const [selectedTags, setSelectedTags] = useState([])
 
   // Weekly banner state
   const [weeklyBanner, setWeeklyBanner] = useState(null) // { headline } | null
@@ -242,15 +243,33 @@ export default function Inbox({ user, onNavigate }) {
     searchInputRef.current?.blur()
   }
 
-  const filtered = cards.filter(card => {
-    if (!searchText) return true
-    const q = searchText.toLowerCase()
-    return (
-      card.title?.toLowerCase().includes(q) ||
-      card.summary?.toLowerCase().includes(q) ||
-      card.primary_tags?.some(t => t.toLowerCase().includes(q)) ||
-      card.secondary_tags?.some(t => t.toLowerCase().includes(q))
+  function toggleTag(tag) {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
     )
+  }
+
+  function clearTags() {
+    setSelectedTags([])
+  }
+
+  const allTags = [...new Set(cards.flatMap(c => c.primary_tags || []))].filter(Boolean)
+
+  const filtered = cards.filter(card => {
+    if (searchText) {
+      const q = searchText.toLowerCase()
+      const matchesSearch = (
+        card.title?.toLowerCase().includes(q) ||
+        card.summary?.toLowerCase().includes(q) ||
+        card.primary_tags?.some(t => t.toLowerCase().includes(q)) ||
+        card.secondary_tags?.some(t => t.toLowerCase().includes(q))
+      )
+      if (!matchesSearch) return false
+    }
+    if (selectedTags.length > 0) {
+      return selectedTags.every(tag => card.primary_tags?.includes(tag))
+    }
+    return true
   })
 
   function timeAgo(dateStr) {
@@ -272,6 +291,8 @@ export default function Inbox({ user, onNavigate }) {
         .classify-toast {
           animation: slideUpIn 0.25s ease-out forwards;
         }
+        .tag-scroll::-webkit-scrollbar { display: none; }
+        .tag-scroll { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       {/* Large title header */}
@@ -364,6 +385,64 @@ export default function Inbox({ user, onNavigate }) {
           </div>
         </div>
       </div>
+
+      {/* Tag filter bar */}
+      {allTags.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: bg,
+          padding: '0 16px 8px',
+          gap: '8px',
+          transition: 'background 0.3s',
+        }}>
+          <div
+            className="tag-scroll"
+            style={{
+              display: 'flex',
+              gap: '6px',
+              overflowX: 'auto',
+              flex: 1,
+              paddingBottom: '2px',
+            }}
+          >
+            {allTags.map(tag => {
+              const active = selectedTags.includes(tag)
+              return (
+                <span
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  style={{
+                    flexShrink: 0,
+                    padding: '5px 12px',
+                    borderRadius: 20,
+                    fontSize: 13,
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    background: active ? '#007AFF' : (isDark ? '#3A3A3C' : '#E5E5EA'),
+                    color: active ? '#FFFFFF' : (isDark ? '#FFFFFF' : '#1C1C1E'),
+                    transition: 'background 0.2s, color 0.2s',
+                    userSelect: 'none',
+                  }}
+                >{tag}</span>
+              )
+            })}
+          </div>
+          {selectedTags.length > 0 && (
+            <span
+              onClick={clearTags}
+              style={{
+                flexShrink: 0,
+                fontSize: 13,
+                fontWeight: '500',
+                color: '#007AFF',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >清除</span>
+          )}
+        </div>
+      )}
 
       {/* Weekly report banner (週一首次開啟才顯示) */}
       {weeklyBanner && !bannerDismissed && (
@@ -495,7 +574,7 @@ export default function Inbox({ user, onNavigate }) {
             marginBottom: '8px',
             paddingLeft: '4px',
             transition: 'color 0.3s',
-          }}>{searchText ? `${filtered.length} 筆結果` : '最近新增'}</div>
+          }}>{(searchText || selectedTags.length > 0) ? `${filtered.length} 筆結果` : '最近新增'}</div>
         )}
 
         {loading && (
@@ -514,12 +593,12 @@ export default function Inbox({ user, onNavigate }) {
           </div>
         )}
 
-        {!loading && searchText && filtered.length === 0 && (
+        {!loading && cards.length > 0 && filtered.length === 0 && (
           <div style={{
             textAlign: 'center', padding: '60px 0',
             color: subtext, fontSize: 15, lineHeight: '2',
           }}>
-            🔍 找不到「{searchText}」相關的卡片
+            🔍 {searchText ? `找不到「${searchText}」相關的卡片` : '沒有符合篩選條件的卡片'}
           </div>
         )}
 
@@ -570,12 +649,28 @@ export default function Inbox({ user, onNavigate }) {
                 )}
               </div>
             </div>
-            {card.tag && (
-              <div style={{ display: 'flex', gap: '6px', marginTop: card.image_url ? '8px' : '0' }}>
-                <span style={{
-                  padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: '500',
-                  background: 'rgba(52,199,89,0.1)', color: colors.success,
-                }}>✓ {card.tag}</span>
+            {(card.tag || (card.primary_tags && card.primary_tags.length > 0)) && (
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px', alignItems: 'center' }}>
+                {card.tag && (
+                  <span style={{
+                    padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: '500',
+                    background: 'rgba(52,199,89,0.1)', color: colors.success,
+                  }}>✓ {card.tag}</span>
+                )}
+                {card.primary_tags?.map(tag => (
+                  <span
+                    key={tag}
+                    onClick={e => { e.stopPropagation(); toggleTag(tag) }}
+                    style={{
+                      padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: '500',
+                      background: selectedTags.includes(tag) ? '#007AFF' : 'rgba(0,122,255,0.12)',
+                      color: selectedTags.includes(tag) ? '#FFFFFF' : '#007AFF',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s, color 0.2s',
+                      userSelect: 'none',
+                    }}
+                  >{tag}</span>
+                ))}
               </div>
             )}
 
