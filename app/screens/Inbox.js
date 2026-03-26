@@ -52,6 +52,16 @@ export default function Inbox({ user, onNavigate }) {
   const [selectedTags, setSelectedTags] = useState([])
   const [searchPage, setSearchPage] = useState(1)
 
+  // Voice input state
+  const [voiceText, setVoiceText] = useState('')
+  const [voiceHint, setVoiceHint] = useState('')
+  const [showVoice, setShowVoice] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const audioFileInputRef = useRef(null)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [toast, setToast] = useState(null) // { message } | null
+  const toastTimerRef = useRef(null)
+
   // Weekly banner state
   const [weeklyBanner, setWeeklyBanner] = useState(null) // { headline } | null
   const [bannerDismissed, setBannerDismissed] = useState(false)
@@ -255,6 +265,104 @@ export default function Inbox({ user, onNavigate }) {
     if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current)
   }
 
+  function showToast(message) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setToast({ message })
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000)
+  }
+
+  function startVoiceInput() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) {
+      showToast('此瀏覽器不支援語音輸入')
+      return
+    }
+    const rec = new SR()
+    rec.lang = 'zh-TW'
+    rec.interimResults = false
+    rec.maxAlternatives = 1
+    setIsListening(true)
+    setShowVoice(true)
+    setVoiceHint('')
+    setVoiceText('')
+    rec.onresult = (e) => {
+      const transcript = e.results[0][0].transcript
+      setVoiceText(transcript)
+      setVoiceHint('已辨識，可修改後再送出')
+      setIsListening(false)
+    }
+    rec.onerror = () => {
+      setIsListening(false)
+      showToast('語音辨識失敗，請再試一次')
+    }
+    rec.onend = () => {
+      setIsListening(false)
+    }
+    rec.start()
+  }
+
+  async function submitVoiceCard() {
+    if (!voiceText.trim()) return
+    const { error } = await supabase.from('cards').insert({
+      user_id: user.id,
+      type: '🎤',
+      type_label: '語音備忘',
+      title: voiceText.trim().slice(0, 50),
+      summary: voiceText.trim(),
+      tag: '',
+      status: 'done'
+    })
+    if (!error) {
+      setVoiceText('')
+      setVoiceHint('')
+      setShowVoice(false)
+      fetchCards()
+    }
+  }
+
+  async function handleAudioSelect(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('檔案過大（上限 10MB）')
+      e.target.value = ''
+      return
+    }
+
+    setIsTranscribing(true)
+    showToast('🎵 轉錄中...')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const formData = new FormData()
+      formData.append('audio', file)
+
+      const res = await fetch('/api/transcribe-audio', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: formData
+      })
+
+      if (!res.ok) {
+        showToast('轉錄失敗，請確認檔案格式')
+        return
+      }
+
+      const data = await res.json()
+      if (data.transcript) {
+        setVoiceText(data.transcript)
+        setVoiceHint('錄音已轉錄，可修改後送出')
+        setShowVoice(true)
+      }
+    } catch {
+      showToast('轉錄失敗，請確認檔案格式')
+    } finally {
+      setIsTranscribing(false)
+      e.target.value = ''
+    }
+  }
+
   function cancelSearch() {
     setSearchText('')
     setSearchFocused(false)
@@ -316,6 +424,11 @@ export default function Inbox({ user, onNavigate }) {
         }
         .tag-scroll::-webkit-scrollbar { display: none; }
         .tag-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        .toast-pop { animation: slideUpIn 0.2s ease-out forwards; }
       `}</style>
 
       {/* Large title header */}
@@ -499,6 +612,71 @@ export default function Inbox({ user, onNavigate }) {
                   ✕
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice / audio transcription panel */}
+      {showVoice && (
+        <div style={{ padding: '0 16px 12px' }}>
+          <div style={{
+            background: cardBg,
+            borderRadius: radius.lg,
+            padding: '16px',
+            boxShadow: shadow.sm,
+            transition: 'background 0.3s',
+          }}>
+            <div style={{ fontSize: 13, fontWeight: '600', color: subtext, marginBottom: '10px', transition: 'color 0.3s' }}>
+              {isListening ? '🎤 聆聽中...' : '語音備忘'}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1 }}>
+                <textarea
+                  value={voiceText}
+                  onChange={e => setVoiceText(e.target.value)}
+                  onInput={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
+                  placeholder={isListening ? '辨識中...' : '語音內容將顯示於此'}
+                  rows={1}
+                  style={{
+                    width: '100%',
+                    background: inputBg,
+                    border: 'none',
+                    borderRadius: radius.sm,
+                    padding: '10px 12px',
+                    fontSize: 15,
+                    color: text,
+                    outline: 'none',
+                    fontFamily: typography.fontFamily,
+                    transition: 'background 0.3s, color 0.3s',
+                    minHeight: '80px',
+                    resize: 'none',
+                    overflow: 'auto',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                {voiceHint && (
+                  <div style={{ fontSize: 12, color: '#8E8E93', marginTop: '4px', paddingLeft: '2px' }}>
+                    {voiceHint}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={submitVoiceCard}
+                disabled={!voiceText.trim()}
+                style={{
+                  background: colors.primary,
+                  border: 'none',
+                  borderRadius: radius.sm,
+                  padding: '10px 16px',
+                  fontSize: 18,
+                  fontWeight: '600',
+                  color: 'white',
+                  cursor: voiceText.trim() ? 'pointer' : 'default',
+                  opacity: voiceText.trim() ? 1 : 0.5,
+                  fontFamily: typography.fontFamily,
+                }}
+              >➤</button>
             </div>
           </div>
         </div>
@@ -786,6 +964,39 @@ export default function Inbox({ user, onNavigate }) {
         style={{ display: 'none' }}
       />
 
+      {/* 隱藏的音訊 input */}
+      <input
+        ref={audioFileInputRef}
+        type="file"
+        accept="audio/*"
+        onChange={handleAudioSelect}
+        style={{ display: 'none' }}
+      />
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className="toast-pop"
+          style={{
+            position: 'fixed',
+            bottom: '164px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: isDark ? 'rgba(58,58,60,0.96)' : 'rgba(50,50,52,0.92)',
+            color: 'white',
+            borderRadius: '20px',
+            padding: '10px 20px',
+            fontSize: 14,
+            fontWeight: '500',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+            zIndex: 1000,
+          }}
+        >
+          {toast.message}
+        </div>
+      )}
+
       {/* FAB 區域：📷 相機 + ＋ 文字 */}
       {/* 相機 FAB（右側，深灰色） */}
       <div
@@ -808,6 +1019,53 @@ export default function Inbox({ user, onNavigate }) {
           lineHeight: 1,
         }}
       >📷</div>
+
+      {/* 🎤 語音 FAB */}
+      <div
+        onClick={startVoiceInput}
+        style={{
+          position: 'fixed',
+          bottom: '96px',
+          right: 'calc(50% - 195px + 16px + 128px)',
+          width: '56px',
+          height: '56px',
+          borderRadius: '28px',
+          backgroundColor: isListening ? '#FF3B30' : '#636366',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '24px',
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          color: 'white',
+          lineHeight: 1,
+          transition: 'background-color 0.2s',
+        }}
+      >🎤</div>
+
+      {/* 🎵 音訊上傳 FAB */}
+      <div
+        onClick={() => !isTranscribing && audioFileInputRef.current?.click()}
+        style={{
+          position: 'fixed',
+          bottom: '96px',
+          right: 'calc(50% - 195px + 16px + 192px)',
+          width: '56px',
+          height: '56px',
+          borderRadius: '28px',
+          backgroundColor: '#636366',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '22px',
+          cursor: isTranscribing ? 'default' : 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          color: 'white',
+          lineHeight: 1,
+          opacity: isTranscribing ? 0.6 : 1,
+          transition: 'opacity 0.2s',
+        }}
+      >🎵</div>
 
       {/* ＋ FAB（相機左側，藍色） */}
       <div
