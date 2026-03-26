@@ -2,35 +2,38 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { colors, typography, shadow, radius } from '../styles/ios-theme'
+import { useTheme } from '../context/ThemeContext'
 
-function SectionHeader({ title }) {
+function SectionHeader({ title, isDark }) {
   return (
     <div style={{
       fontSize: 13,
       fontWeight: '400',
-      color: colors.textTertiary,
+      color: isDark ? '#8E8E93' : colors.textTertiary,
       margin: '24px 0 6px',
       paddingLeft: '16px',
       textTransform: 'uppercase',
       letterSpacing: '0.06em',
+      transition: 'color 0.3s',
     }}>{title}</div>
   )
 }
 
-function GroupedList({ children }) {
+function GroupedList({ children, isDark }) {
   return (
     <div style={{
-      background: colors.card,
+      background: isDark ? '#1C1C1E' : colors.card,
       borderRadius: radius.lg,
       overflow: 'hidden',
       boxShadow: shadow.sm,
+      transition: 'background 0.3s',
     }}>
       {children}
     </div>
   )
 }
 
-function ListRow({ label, value, chevron = true, onClick, danger = false, last = false, right }) {
+function ListRow({ label, value, chevron = true, onClick, danger = false, last = false, right, isDark }) {
   return (
     <div
       onClick={onClick}
@@ -40,15 +43,15 @@ function ListRow({ label, value, chevron = true, onClick, danger = false, last =
         justifyContent: 'space-between',
         padding: '12px 16px',
         cursor: onClick ? 'pointer' : 'default',
-        borderBottom: last ? 'none' : `1px solid ${colors.separator}`,
+        borderBottom: last ? 'none' : `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : colors.separator}`,
         background: 'transparent',
       }}
     >
-      <span style={{ fontSize: 17, color: danger ? colors.danger : colors.text }}>{label}</span>
+      <span style={{ fontSize: 17, color: danger ? colors.danger : (isDark ? '#FFFFFF' : colors.text), transition: 'color 0.3s' }}>{label}</span>
       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         {right}
-        {value && <span style={{ fontSize: 15, color: colors.textTertiary }}>{value}</span>}
-        {chevron && !right && <span style={{ fontSize: 15, color: colors.textTertiary }}>›</span>}
+        {value && <span style={{ fontSize: 15, color: isDark ? '#8E8E93' : colors.textTertiary, transition: 'color 0.3s' }}>{value}</span>}
+        {chevron && !right && <span style={{ fontSize: 15, color: isDark ? '#8E8E93' : colors.textTertiary }}>›</span>}
       </span>
     </div>
   )
@@ -84,6 +87,11 @@ function Toggle({ value, onToggle }) {
 }
 
 export default function Settings({ user }) {
+  const { isDark, toggleDark } = useTheme()
+  const text = isDark ? '#FFFFFF' : colors.text
+  const subtext = isDark ? '#8E8E93' : colors.textTertiary
+  const rowBg = isDark ? '#1C1C1E' : colors.card
+
   const [lang, setLang] = useState('繁體中文')
   const [aiLayer, setAiLayer] = useState('cloud')
   const [surfaceNotif, setSurfaceNotif] = useState(true)
@@ -153,22 +161,35 @@ export default function Settings({ user }) {
   }
 
   return (
-    <div style={{ paddingBottom: '90px', fontFamily: typography.fontFamily }}>
+    <div style={{ paddingBottom: '90px', fontFamily: typography.fontFamily, transition: 'color 0.3s, background 0.3s' }}>
       {/* Large title header */}
       <div style={{ padding: '56px 16px 0' }}>
-        <div style={{ fontSize: 34, fontWeight: '700', color: colors.text, letterSpacing: 0.37 }}>設定</div>
+        <div style={{ fontSize: 34, fontWeight: '700', color: text, letterSpacing: 0.37, transition: 'color 0.3s' }}>設定</div>
       </div>
 
       <div style={{ padding: '0 16px' }}>
+        {/* Appearance section */}
+        <SectionHeader title="外觀" isDark={isDark} />
+        <GroupedList isDark={isDark}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '10px 16px',
+          }}>
+            <span style={{ fontSize: 17, color: text, transition: 'color 0.3s' }}>🌙 深色模式</span>
+            <Toggle value={isDark} onToggle={toggleDark} />
+          </div>
+        </GroupedList>
+
         {/* Language section */}
-        <SectionHeader title="語言" />
+        <SectionHeader title="語言" isDark={isDark} />
         <div style={{ position: 'relative' }}>
-          <GroupedList>
+          <GroupedList isDark={isDark}>
             <ListRow
               label="🌐 顯示語言"
               value={lang}
               onClick={() => setShowLangs(!showLangs)}
               last
+              isDark={isDark}
             />
           </GroupedList>
           {showLangs && (
@@ -177,11 +198,12 @@ export default function Settings({ user }) {
               top: '52px',
               left: 0,
               right: 0,
-              background: colors.card,
+              background: rowBg,
               borderRadius: radius.lg,
               zIndex: 50,
               overflow: 'hidden',
               boxShadow: shadow.lg,
+              transition: 'background 0.3s',
             }}>
               {langs.map((l, i) => (
                 <div
@@ -191,12 +213,13 @@ export default function Settings({ user }) {
                     padding: '12px 16px',
                     fontSize: 17,
                     cursor: 'pointer',
-                    color: lang === l ? colors.primary : colors.text,
+                    color: lang === l ? colors.primary : text,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    borderBottom: i < langs.length - 1 ? `1px solid ${colors.separator}` : 'none',
+                    borderBottom: i < langs.length - 1 ? `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : colors.separator}` : 'none',
                     background: 'transparent',
+                    transition: 'color 0.3s',
                   }}
                 >
                   {l}
@@ -208,8 +231,8 @@ export default function Settings({ user }) {
         </div>
 
         {/* AI layer section */}
-        <SectionHeader title="AI 層" />
-        <GroupedList>
+        <SectionHeader title="AI 層" isDark={isDark} />
+        <GroupedList isDark={isDark}>
           {[
             { id: 'cloud', icon: '☁️', name: 'Brainworm 雲端 AI', desc: '最佳品質，語音轉文字、多模態、問答全功能（Pro 方案）' },
             { id: 'byok', icon: '🔑', name: '自帶 API Key（BYOK）', desc: '使用自己的 OpenAI / Anthropic Key，可接本地 Ollama' },
@@ -221,23 +244,23 @@ export default function Settings({ user }) {
               style={{
                 padding: '12px 16px',
                 cursor: layer.soon ? 'default' : 'pointer',
-                borderBottom: i < arr.length - 1 ? `1px solid ${colors.separator}` : 'none',
+                borderBottom: i < arr.length - 1 ? `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : colors.separator}` : 'none',
                 background: aiLayer === layer.id ? 'rgba(0,122,255,0.04)' : 'transparent',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
-                <span style={{ fontSize: 17, color: colors.text }}>{layer.icon} {layer.name}</span>
+                <span style={{ fontSize: 17, color: text, transition: 'color 0.3s' }}>{layer.icon} {layer.name}</span>
                 {aiLayer === layer.id && <span style={{ color: colors.primary, fontSize: 17 }}>✓</span>}
-                {layer.soon && <span style={{ fontSize: 12, color: colors.textTertiary, fontWeight: '500' }}>即將推出</span>}
+                {layer.soon && <span style={{ fontSize: 12, color: subtext, fontWeight: '500', transition: 'color 0.3s' }}>即將推出</span>}
               </div>
-              <div style={{ fontSize: 13, color: colors.textTertiary, lineHeight: '1.4' }}>{layer.desc}</div>
+              <div style={{ fontSize: 13, color: subtext, lineHeight: '1.4', transition: 'color 0.3s' }}>{layer.desc}</div>
             </div>
           ))}
         </GroupedList>
 
         {/* Notifications section */}
-        <SectionHeader title="通知" />
-        <GroupedList>
+        <SectionHeader title="通知" isDark={isDark} />
+        <GroupedList isDark={isDark}>
           {[
             { label: '🧠 Surface 浮現通知', value: surfaceNotif, toggle: () => setSurfaceNotif(!surfaceNotif) },
             { label: '📥 新卡片整理完成', value: cardNotif, toggle: () => setCardNotif(!cardNotif) },
@@ -245,19 +268,19 @@ export default function Settings({ user }) {
             <div key={item.label} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '10px 16px',
-              borderBottom: i < arr.length - 1 ? `1px solid ${colors.separator}` : 'none',
+              borderBottom: i < arr.length - 1 ? `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : colors.separator}` : 'none',
             }}>
-              <span style={{ fontSize: 17, color: colors.text }}>{item.label}</span>
+              <span style={{ fontSize: 17, color: text, transition: 'color 0.3s' }}>{item.label}</span>
               <Toggle value={item.value} onToggle={item.toggle} />
             </div>
           ))}
         </GroupedList>
 
         {/* Referral - invite friends */}
-        <SectionHeader title="邀請好友" />
-        <GroupedList>
+        <SectionHeader title="邀請好友" isDark={isDark} />
+        <GroupedList isDark={isDark}>
           <div style={{ padding: '16px' }}>
-            <div style={{ fontSize: 13, color: colors.textTertiary, marginBottom: '10px' }}>你的推薦碼</div>
+            <div style={{ fontSize: 13, color: subtext, marginBottom: '10px', transition: 'color 0.3s' }}>你的推薦碼</div>
             <div
               onClick={copyReferralCode}
               style={{
@@ -273,10 +296,10 @@ export default function Settings({ user }) {
             >
               {quota?.referral_code || '------'}
             </div>
-            <div style={{ fontSize: 13, color: colors.textTertiary, textAlign: 'center', marginBottom: '12px' }}>
+            <div style={{ fontSize: 13, color: subtext, textAlign: 'center', marginBottom: '12px', transition: 'color 0.3s' }}>
               {copied ? '已複製！' : '點擊推薦碼即可複製'}
             </div>
-            <div style={{ fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginBottom: '16px' }}>
+            <div style={{ fontSize: 14, color: subtext, textAlign: 'center', marginBottom: '16px', transition: 'color 0.3s' }}>
               已成功推薦 <strong>{quota?.total_referrals || 0}</strong> 人，額外獲得 <strong>{(quota?.total_referrals || 0) * 10}</strong> 次 AI 額度
             </div>
             <div
@@ -300,10 +323,10 @@ export default function Settings({ user }) {
         {/* Referral - redeem code (only if not yet used) */}
         {quota && !quota.referred_by && (
           <>
-            <SectionHeader title="輸入邀請碼" />
-            <GroupedList>
+            <SectionHeader title="輸入邀請碼" isDark={isDark} />
+            <GroupedList isDark={isDark}>
               <div style={{ padding: '16px' }}>
-                <div style={{ fontSize: 13, color: colors.textTertiary, marginBottom: '10px' }}>
+                <div style={{ fontSize: 13, color: subtext, marginBottom: '10px', transition: 'color 0.3s' }}>
                   輸入好友的推薦碼，雙方各獲得額外 AI 額度
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -314,16 +337,17 @@ export default function Settings({ user }) {
                     maxLength={6}
                     style={{
                       flex: 1,
-                      background: 'rgba(118,118,128,0.08)',
+                      background: isDark ? '#3A3A3C' : 'rgba(118,118,128,0.08)',
                       border: 'none',
                       borderRadius: radius.md,
                       padding: '12px 14px',
                       fontSize: 17,
                       fontWeight: '600',
                       letterSpacing: '0.1em',
-                      color: colors.text,
+                      color: text,
                       outline: 'none',
                       fontFamily: typography.fontFamily,
+                      transition: 'background 0.3s, color 0.3s',
                     }}
                   />
                   <div
@@ -358,21 +382,22 @@ export default function Settings({ user }) {
         )}
 
         {/* Account section */}
-        <SectionHeader title="帳號" />
+        <SectionHeader title="帳號" isDark={isDark} />
         {user && (
-          <div style={{ fontSize: 13, color: colors.textTertiary, padding: '0 4px 6px', paddingLeft: '4px' }}>
+          <div style={{ fontSize: 13, color: subtext, padding: '0 4px 6px', paddingLeft: '4px', transition: 'color 0.3s' }}>
             {user.email}
           </div>
         )}
-        <GroupedList>
-          <ListRow label="👤 帳號" value="Pro 方案" onClick={() => {}} />
-          <ListRow label="📤 匯出所有資料" onClick={() => {}} last={false} />
+        <GroupedList isDark={isDark}>
+          <ListRow label="👤 帳號" value="Pro 方案" onClick={() => {}} isDark={isDark} />
+          <ListRow label="📤 匯出所有資料" onClick={() => {}} last={false} isDark={isDark} />
           <ListRow
             label="登出"
             danger
             chevron={false}
             onClick={() => supabase.auth.signOut()}
             last
+            isDark={isDark}
           />
         </GroupedList>
       </div>

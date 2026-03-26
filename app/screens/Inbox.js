@@ -2,8 +2,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { colors, typography, shadow, radius } from '../styles/ios-theme'
+import { useTheme } from '../context/ThemeContext'
 
 export default function Inbox({ user }) {
+  const { isDark } = useTheme()
+  const bg = isDark ? '#1C1C1E' : '#F2F2F7'
+  const cardBg = isDark ? '#2C2C2E' : '#FFFFFF'
+  const text = isDark ? '#FFFFFF' : '#1C1C1E'
+  const subtext = isDark ? '#8E8E93' : '#6D6D72'
+  const inputBg = isDark ? '#3A3A3C' : 'rgba(118,118,128,0.08)'
+
   const [cards, setCards] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -192,7 +200,7 @@ export default function Inbox({ user }) {
   }
 
   return (
-    <div style={{ paddingBottom: '90px', fontFamily: typography.fontFamily }}>
+    <div style={{ paddingBottom: '90px', fontFamily: typography.fontFamily, transition: 'color 0.3s, background 0.3s' }}>
       <style>{`
         @keyframes slideUpIn {
           from { opacity: 0; transform: translateY(8px); }
@@ -211,8 +219,8 @@ export default function Inbox({ user }) {
         padding: '56px 16px 8px',
       }}>
         <div>
-          <div style={{ fontSize: 34, fontWeight: '700', color: colors.text, letterSpacing: 0.37 }}>Inbox</div>
-          <div style={{ fontSize: 13, color: colors.textTertiary, marginTop: '2px' }}>
+          <div style={{ fontSize: 34, fontWeight: '700', color: text, letterSpacing: 0.37, transition: 'color 0.3s' }}>Inbox</div>
+          <div style={{ fontSize: 13, color: subtext, marginTop: '2px', transition: 'color 0.3s' }}>
             {loading ? '載入中...' : `${cards.length} 張卡片`}
           </div>
         </div>
@@ -222,12 +230,13 @@ export default function Inbox({ user }) {
       {showAdd && (
         <div style={{ padding: '0 16px 12px' }}>
           <div style={{
-            background: colors.card,
+            background: cardBg,
             borderRadius: radius.lg,
             padding: '16px',
             boxShadow: shadow.sm,
+            transition: 'background 0.3s',
           }}>
-            <div style={{ fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginBottom: '10px' }}>
+            <div style={{ fontSize: 13, fontWeight: '600', color: subtext, marginBottom: '10px', transition: 'color 0.3s' }}>
               貼入網址
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -238,14 +247,15 @@ export default function Inbox({ user }) {
                 placeholder="https://..."
                 style={{
                   flex: 1,
-                  background: 'rgba(118,118,128,0.08)',
+                  background: inputBg,
                   border: 'none',
                   borderRadius: radius.sm,
                   padding: '10px 12px',
                   fontSize: 15,
-                  color: colors.text,
+                  color: text,
                   outline: 'none',
                   fontFamily: typography.fontFamily,
+                  transition: 'background 0.3s, color 0.3s',
                 }}
               />
               <button onClick={addCard} disabled={adding} style={{
@@ -271,28 +281,29 @@ export default function Inbox({ user }) {
         {/* Smart suggestion banner */}
         {!dismissed && cards.length >= 5 && (
           <div style={{
-            background: colors.card,
+            background: cardBg,
             border: `1px solid rgba(0,122,255,0.2)`,
             borderRadius: radius.lg,
             padding: '14px',
             marginBottom: '16px',
             boxShadow: shadow.sm,
+            transition: 'background 0.3s',
           }}>
             <div style={{ fontSize: 11, fontWeight: '700', color: colors.primary, marginBottom: '6px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               🧠 發現新模式
             </div>
-            <div style={{ fontSize: 13, color: colors.text, marginBottom: '10px', lineHeight: '1.5' }}>
+            <div style={{ fontSize: 13, color: text, marginBottom: '10px', lineHeight: '1.5', transition: 'color 0.3s' }}>
               你已經累積了 <strong>{cards.length} 張卡片</strong>，要整理一下嗎？
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setDismissed(true)} style={{
                 padding: '6px 14px', borderRadius: radius.sm, border: 'none',
-                background: 'rgba(118,118,128,0.12)', color: colors.textSecondary, fontSize: 13,
+                background: 'rgba(118,118,128,0.12)', color: subtext, fontSize: 13,
                 fontWeight: '500', cursor: 'pointer', fontFamily: typography.fontFamily,
               }}>稍後</button>
               <button onClick={() => setDismissed(true)} style={{
                 padding: '6px 14px', borderRadius: radius.sm, border: 'none',
-                background: 'rgba(118,118,128,0.12)', color: colors.textSecondary, fontSize: 13,
+                background: 'rgba(118,118,128,0.12)', color: subtext, fontSize: 13,
                 fontWeight: '500', cursor: 'pointer', fontFamily: typography.fontFamily,
               }}>忽略</button>
             </div>
@@ -304,14 +315,15 @@ export default function Inbox({ user }) {
             fontSize: 13,
             fontWeight: '600',
             letterSpacing: '-0.08px',
-            color: colors.textTertiary,
+            color: subtext,
             marginBottom: '8px',
             paddingLeft: '4px',
+            transition: 'color 0.3s',
           }}>最近新增</div>
         )}
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: colors.textTertiary, fontSize: 15 }}>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: subtext, fontSize: 15 }}>
             載入中...
           </div>
         )}
@@ -319,7 +331,7 @@ export default function Inbox({ user }) {
         {!loading && cards.length === 0 && (
           <div style={{
             textAlign: 'center', padding: '60px 0',
-            color: colors.textTertiary, fontSize: 15, lineHeight: '2',
+            color: subtext, fontSize: 15, lineHeight: '2',
           }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>📥</div>
             還沒有卡片<br />點右下角 ＋ 新增第一張
@@ -328,24 +340,25 @@ export default function Inbox({ user }) {
 
         {cards.map(card => (
           <div key={card.id} style={{
-            background: colors.card,
+            background: cardBg,
             borderRadius: radius.lg,
             padding: '14px 16px',
             marginBottom: '10px',
             cursor: 'pointer',
             boxShadow: shadow.sm,
+            transition: 'background 0.3s',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <span style={{ fontSize: 16 }}>{card.type}</span>
-              <span style={{ fontSize: 11, fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.textTertiary, flex: 1 }}>{card.type_label}</span>
-              <span style={{ fontSize: 12, color: colors.textTertiary }}>{timeAgo(card.created_at)}</span>
+              <span style={{ fontSize: 11, fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase', color: subtext, flex: 1, transition: 'color 0.3s' }}>{card.type_label}</span>
+              <span style={{ fontSize: 12, color: subtext, transition: 'color 0.3s' }}>{timeAgo(card.created_at)}</span>
             </div>
             {(card.status === 'processing' || card.status === 'analyzing') && (
               <div style={{ marginBottom: '8px' }}>
                 <div style={{ height: '3px', background: 'rgba(0,122,255,0.15)', borderRadius: '2px', overflow: 'hidden', marginBottom: '4px' }}>
                   <div style={{ height: '100%', width: '60%', background: colors.primary, borderRadius: '2px' }}></div>
                 </div>
-                <div style={{ fontSize: 12, color: colors.textTertiary }}>
+                <div style={{ fontSize: 12, color: subtext, transition: 'color 0.3s' }}>
                   {card.status === 'analyzing' ? 'AI 分析中...' : '處理中...'}
                 </div>
               </div>
@@ -366,9 +379,9 @@ export default function Inbox({ user }) {
                 />
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: '6px', lineHeight: '1.4' }}>{card.title}</div>
+                <div style={{ fontSize: 15, fontWeight: '600', color: text, marginBottom: '6px', lineHeight: '1.4', transition: 'color 0.3s' }}>{card.title}</div>
                 {card.summary && card.summary !== '正在處理中...' && (
-                  <div style={{ fontSize: 13, color: colors.textSecondary, lineHeight: '1.5', marginBottom: '10px' }}>{card.summary}</div>
+                  <div style={{ fontSize: 13, color: subtext, lineHeight: '1.5', marginBottom: '10px', transition: 'color 0.3s' }}>{card.summary}</div>
                 )}
               </div>
             </div>
@@ -387,16 +400,17 @@ export default function Inbox({ user }) {
                 className="classify-toast"
                 style={{
                   marginTop: '10px',
-                  background: '#FFFFFF',
+                  background: cardBg,
                   borderRadius: '12px',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
+                  boxShadow: isDark ? '0 2px 12px rgba(0,0,0,0.4)' : '0 2px 12px rgba(0,0,0,0.12)',
                   padding: '12px 16px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
+                  transition: 'background 0.3s',
                 }}
               >
-                <span style={{ fontSize: 13, color: '#1C1C1E', flex: 1, lineHeight: '1.4' }}>
+                <span style={{ fontSize: 13, color: text, flex: 1, lineHeight: '1.4', transition: 'color 0.3s' }}>
                   💡 建議歸入《{classifySuggestion.themeName}》
                 </span>
                 <button

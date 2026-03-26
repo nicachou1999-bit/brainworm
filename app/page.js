@@ -8,6 +8,7 @@ import ThemeDetail from './screens/ThemeDetail'
 import Chat from './screens/Chat'
 import Settings from './screens/Settings'
 import { colors, typography } from './styles/ios-theme'
+import { ThemeProvider, useTheme } from './context/ThemeContext'
 
 const TAB_ITEMS = [
   { icon: '📥', label: 'Inbox', id: 'inbox' },
@@ -16,10 +17,11 @@ const TAB_ITEMS = [
   { icon: '⚙️', label: '設定', id: 'settings' },
 ]
 
-export default function Home() {
+function HomeInner() {
   const [screen, setScreen] = useState('inbox')
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const { isDark } = useTheme()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -37,7 +39,6 @@ export default function Home() {
   if (loading) {
     return (
       <div style={{
-        backgroundColor: colors.background,
         minHeight: '100vh',
         maxWidth: '390px',
         margin: '0 auto',
@@ -61,13 +62,13 @@ export default function Home() {
 
   return (
     <div style={{
-      backgroundColor: colors.background,
       minHeight: '100vh',
       maxWidth: '390px',
       margin: '0 auto',
       fontFamily: typography.fontFamily,
-      color: colors.text,
+      color: isDark ? '#FFFFFF' : colors.text,
       position: 'relative',
+      transition: 'color 0.3s',
     }}>
       {screen === 'inbox' && <Inbox user={user} />}
       {screen === 'themes' && <Themes onThemeClick={() => setScreen('themeDetail')} />}
@@ -85,11 +86,12 @@ export default function Home() {
           display: 'flex',
           justifyContent: 'space-around',
           padding: '8px 0 28px',
-          borderTop: `1px solid ${colors.separator}`,
-          background: 'rgba(249,249,249,0.85)',
+          borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : colors.separator}`,
+          background: isDark ? 'rgba(28,28,30,0.85)' : 'rgba(255,255,255,0.85)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           zIndex: 100,
+          transition: 'background 0.3s',
         }}>
           {TAB_ITEMS.map(item => {
             const active = screen === item.id
@@ -111,7 +113,7 @@ export default function Home() {
                 <span style={{
                   fontSize: '10px',
                   fontWeight: '500',
-                  color: active ? colors.primary : colors.textTertiary,
+                  color: active ? colors.primary : '#8E8E93',
                   letterSpacing: '-0.1px',
                 }}>{item.label}</span>
               </div>
@@ -120,5 +122,13 @@ export default function Home() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <ThemeProvider>
+      <HomeInner />
+    </ThemeProvider>
   )
 }

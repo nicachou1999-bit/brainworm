@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { colors, typography, shadow, radius } from '../styles/ios-theme'
+import { useTheme } from '../context/ThemeContext'
 
 const initialMessages = [
   {
@@ -30,6 +31,15 @@ const initialMessages = [
 const scopes = ['全部知識庫', '⚡ 深度工作', '🎨 UI 靈感', '🚀 創業點子']
 
 export default function Chat() {
+  const { isDark } = useTheme()
+  const bg = isDark ? '#1C1C1E' : '#F2F2F7'
+  const cardBg = isDark ? '#2C2C2E' : '#FFFFFF'
+  const text = isDark ? '#FFFFFF' : '#1C1C1E'
+  const subtext = isDark ? '#8E8E93' : '#6D6D72'
+  const aiBubbleBg = isDark ? '#1C1C1E' : '#F2F2F7'
+  const inputBarBg = isDark ? 'rgba(28,28,30,0.9)' : 'rgba(249,249,249,0.9)'
+  const separatorColor = isDark ? 'rgba(255,255,255,0.1)' : colors.separator
+
   const [messages, setMessages] = useState(initialMessages)
   const [input, setInput] = useState('')
   const [scope, setScope] = useState('⚡ 深度工作')
@@ -55,7 +65,7 @@ export default function Chat() {
       height: '100vh',
       paddingBottom: '80px',
       fontFamily: typography.fontFamily,
-      backgroundColor: colors.background,
+      transition: 'color 0.3s, background 0.3s',
     }}>
       {/* Header */}
       <div style={{
@@ -65,15 +75,16 @@ export default function Chat() {
         padding: '56px 16px 8px',
       }}>
         <div>
-          <div style={{ fontSize: 34, fontWeight: '700', color: colors.text, letterSpacing: 0.37 }}>問 AI</div>
-          <div style={{ fontSize: 13, color: colors.textTertiary, marginTop: '2px' }}>基於你的知識庫回答</div>
+          <div style={{ fontSize: 34, fontWeight: '700', color: text, letterSpacing: 0.37, transition: 'color 0.3s' }}>問 AI</div>
+          <div style={{ fontSize: 13, color: subtext, marginTop: '2px', transition: 'color 0.3s' }}>基於你的知識庫回答</div>
         </div>
         <div style={{
           width: '36px', height: '36px', borderRadius: radius.sm,
-          background: colors.card,
+          background: cardBg,
           boxShadow: shadow.sm,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 18, cursor: 'pointer',
+          transition: 'background 0.3s',
         }}>⊕</div>
       </div>
 
@@ -84,26 +95,28 @@ export default function Chat() {
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '10px 14px',
-            background: colors.card,
+            background: cardBg,
             borderRadius: radius.md,
             cursor: 'pointer',
             boxShadow: shadow.sm,
+            transition: 'background 0.3s',
           }}>
-          <span style={{ fontSize: 13, color: colors.textSecondary }}>範圍：</span>
+          <span style={{ fontSize: 13, color: subtext, transition: 'color 0.3s' }}>範圍：</span>
           <span style={{
             padding: '2px 10px', borderRadius: 6, fontSize: 13, fontWeight: '600',
             background: 'rgba(0,122,255,0.1)', color: colors.primary,
           }}>{scope}</span>
-          <span style={{ fontSize: 13, color: colors.textTertiary, marginLeft: 'auto' }}>切換 ›</span>
+          <span style={{ fontSize: 13, color: subtext, marginLeft: 'auto', transition: 'color 0.3s' }}>切換 ›</span>
         </div>
         {showScopes && (
           <div style={{
             position: 'absolute', top: '52px', left: '16px', right: '16px',
-            background: colors.card,
+            background: cardBg,
             borderRadius: radius.md,
             zIndex: 50,
             overflow: 'hidden',
             boxShadow: shadow.lg,
+            transition: 'background 0.3s',
           }}>
             {scopes.map((s, i) => (
               <div
@@ -111,9 +124,10 @@ export default function Chat() {
                 onClick={() => { setScope(s); setShowScopes(false) }}
                 style={{
                   padding: '12px 16px', fontSize: 15, cursor: 'pointer',
-                  color: scope === s ? colors.primary : colors.text,
+                  color: scope === s ? colors.primary : text,
                   background: scope === s ? 'rgba(0,122,255,0.06)' : 'transparent',
-                  borderBottom: i < scopes.length - 1 ? `1px solid ${colors.separator}` : 'none',
+                  borderBottom: i < scopes.length - 1 ? `1px solid ${separatorColor}` : 'none',
+                  transition: 'color 0.3s',
                 }}>{s}</div>
             ))}
           </div>
@@ -142,22 +156,24 @@ export default function Chat() {
                 borderRadius: msg.role === 'user' ? `${radius.lg}px ${radius.lg}px 4px ${radius.lg}px` : `${radius.lg}px ${radius.lg}px ${radius.lg}px 4px`,
                 fontSize: 15,
                 lineHeight: '1.5',
-                background: msg.role === 'user' ? colors.primary : colors.card,
-                color: msg.role === 'user' ? 'white' : colors.text,
+                background: msg.role === 'user' ? colors.primary : aiBubbleBg,
+                color: msg.role === 'user' ? 'white' : text,
                 boxShadow: shadow.sm,
                 whiteSpace: 'pre-line',
+                transition: 'background 0.3s, color 0.3s',
               }}>{msg.text}</div>
               {msg.sources && msg.sources.length > 0 && (
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '6px' }}>
                   {msg.sources.map(s => (
                     <span key={s} style={{
                       padding: '3px 10px',
-                      background: colors.card,
+                      background: cardBg,
                       borderRadius: 20,
                       fontSize: 12,
-                      color: colors.textSecondary,
+                      color: subtext,
                       cursor: 'pointer',
                       boxShadow: shadow.sm,
+                      transition: 'background 0.3s, color 0.3s',
                     }}>{s}</span>
                   ))}
                 </div>
@@ -172,10 +188,11 @@ export default function Chat() {
         display: 'flex',
         gap: '8px',
         padding: '10px 16px 12px',
-        borderTop: `1px solid ${colors.separator}`,
-        background: 'rgba(249,249,249,0.9)',
+        borderTop: `1px solid ${separatorColor}`,
+        background: inputBarBg,
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
+        transition: 'background 0.3s, border-color 0.3s',
       }}>
         <input
           value={input}
@@ -184,15 +201,16 @@ export default function Chat() {
           placeholder="問任何問題..."
           style={{
             flex: 1,
-            background: colors.card,
+            background: cardBg,
             border: 'none',
             borderRadius: 22,
             padding: '10px 16px',
             fontSize: 15,
-            color: colors.text,
+            color: text,
             outline: 'none',
             fontFamily: typography.fontFamily,
             boxShadow: shadow.sm,
+            transition: 'background 0.3s, color 0.3s',
           }}
         />
         <button
