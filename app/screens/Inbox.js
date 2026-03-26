@@ -4,7 +4,15 @@ import { supabase } from '../../lib/supabase'
 import { colors, typography, shadow, radius } from '../styles/ios-theme'
 import { useTheme } from '../context/ThemeContext'
 
-export default function Inbox({ user }) {
+function getWeekKey() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const start = new Date(year, 0, 1)
+  const weekNum = Math.ceil(((now - start) / 86400000 + start.getDay() + 1) / 7)
+  return `weekly-banner-${year}-${weekNum}`
+}
+
+export default function Inbox({ user, onNavigate }) {
   const { isDark } = useTheme()
   const bg = isDark ? '#1C1C1E' : '#F2F2F7'
   const cardBg = isDark ? '#2C2C2E' : '#FFFFFF'
@@ -23,9 +31,43 @@ export default function Inbox({ user }) {
   // classifySuggestion: { cardId, themeId, themeName } | null
   const dismissTimerRef = useRef(null)
 
+  // Weekly banner state
+  const [weeklyBanner, setWeeklyBanner] = useState(null) // { headline } | null
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+
   useEffect(() => {
     fetchCards()
+    // 只在週一嘗試顯示週報橫幅
+    const isMonday = new Date().getDay() === 1
+    const weekKey = getWeekKey()
+    const alreadyShown = typeof window !== 'undefined' && localStorage.getItem(weekKey)
+    if (isMonday && !alreadyShown && user) {
+      loadWeeklyBanner()
+    }
   }, [])
+
+  async function loadWeeklyBanner() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const res = await fetch('/api/weekly-report', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      })
+      const json = await res.json()
+      if (json.report?.headline) {
+        setWeeklyBanner({ headline: json.report.headline })
+      }
+    } catch {
+      // 非必要功能，失敗靜默處理
+    }
+  }
+
+  function dismissWeeklyBanner() {
+    setBannerDismissed(true)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(getWeekKey(), '1')
+    }
+  }
 
   async function fetchCards() {
     setLoading(true)
@@ -225,6 +267,43 @@ export default function Inbox({ user }) {
           </div>
         </div>
       </div>
+
+      {/* Weekly report banner (週一首次開啟才顯示) */}
+      {weeklyBanner && !bannerDismissed && (
+        <div style={{ padding: '0 16px 12px' }}>
+          <div style={{
+            background: 'white',
+            borderRadius: radius.lg,
+            boxShadow: shadow.sm,
+            display: 'flex',
+            overflow: 'hidden',
+          }}>
+            <div style={{ width: '4px', background: colors.primary, flexShrink: 0 }} />
+            <div style={{ padding: '14px', flex: 1 }}>
+              <div style={{ fontSize: 11, fontWeight: '700', color: colors.primary, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                📊 本週週報
+              </div>
+              <div style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: '10px', lineHeight: '1.4' }}>
+                {weeklyBanner.headline}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div
+                  onClick={() => { dismissWeeklyBanner(); onNavigate?.('settings') }}
+                  style={{ fontSize: 14, fontWeight: '600', color: colors.primary, cursor: 'pointer' }}
+                >
+                  查看週報 →
+                </div>
+                <div
+                  onClick={dismissWeeklyBanner}
+                  style={{ fontSize: 13, color: colors.textTertiary, cursor: 'pointer', marginLeft: 'auto' }}
+                >
+                  ✕
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add URL panel */}
       {showAdd && (

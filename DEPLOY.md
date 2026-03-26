@@ -234,6 +234,48 @@ Vercel 會自動幫你建置，大約等 **1～2 分鐘**。
 
 ---
 
+---
+
+## 每週 AI 週報功能
+
+### 觸發方式
+
+週報功能採「按需產生」設計，不強制排程：
+
+- **手動觸發**：進入「設定」頁，點「查看 AI 週報」按鈕即可產生
+- **週一橫幅**：每週一首次開啟 App 時，若上週有卡片，Inbox 頂部會自動顯示週報橫幅（每週只顯示一次，記錄於 localStorage）
+
+### 設定 Vercel Cron Job（選用）
+
+如需每週一自動預產生週報，可在 `vercel.json` 加入：
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/weekly-report",
+      "schedule": "0 1 * * 1"
+    }
+  ]
+}
+```
+
+> 注意：Cron Job 需要 Vercel Pro 方案。免費方案可略過此步驟，改用手動觸發。
+
+### 未來擴充：Email 寄送
+
+若想每週自動寄送週報 Email，可整合以下服務：
+
+- **[Resend](https://resend.com)**：最簡單的 Email API，免費方案每月 3,000 封
+- **[SendGrid](https://sendgrid.com)**：適合大量寄送
+
+整合步驟：
+1. 申請 API Key
+2. 在 Vercel 加入 `RESEND_API_KEY` 環境變數
+3. 在 `/api/weekly-report` 加入 Email 寄送邏輯（使用 `resend.emails.send()`）
+
+---
+
 ## 遇到問題？
 
 - **部署失敗**：回到 Vercel，點 **View Build Logs** 看錯誤訊息，通常是環境變數少填了

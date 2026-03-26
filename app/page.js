@@ -89,7 +89,7 @@ function HomeInner() {
       position: 'relative',
       transition: 'color 0.3s',
     }}>
-      {screen === 'inbox' && <Inbox user={user} />}
+      {screen === 'inbox' && <Inbox user={user} onNavigate={setScreen} />}
       {screen === 'themes' && <Themes onThemeClick={() => setScreen('themeDetail')} />}
       {screen === 'themeDetail' && <ThemeDetail onBack={() => setScreen('themes')} />}
       {screen === 'review' && <Review user={user} />}
