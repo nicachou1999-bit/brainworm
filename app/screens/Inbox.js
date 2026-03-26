@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { colors, typography, shadow, radius } from '../styles/ios-theme'
 
@@ -10,6 +10,7 @@ export default function Inbox({ user }) {
   const [url, setUrl] = useState('')
   const [adding, setAdding] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     fetchCards()
@@ -46,6 +47,74 @@ export default function Inbox({ user }) {
       fetchCards()
     }
     setAdding(false)
+  }
+
+  async function handleImageSelect(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // 立即顯示「分析中...」暫時卡片
+    const tempId = 'temp-' + Date.now()
+    setCards(prev => [{
+      id: tempId,
+      type: '📷',
+      type_label: '圖片',
+      title: '分析中...',
+      summary: '',
+      status: 'analyzing',
+      created_at: new Date().toISOString()
+    }, ...prev])
+
+    try {
+      // 上傳圖片到 Supabase Storage
+      const timestamp = Date.now()
+      const path = `${user.id}/${timestamp}.jpg`
+      const { error: uploadError } = await supabase.storage
+        .from('card-images')
+        .upload(path, file)
+
+      let imageUrl = null
+      if (!uploadError) {
+        const { data: signedData } = await supabase.storage
+          .from('card-images')
+          .createSignedUrl(path, 315360000) // 約 10 年
+        imageUrl = signedData?.signedUrl
+      }
+
+      // 呼叫 AI 分析 API
+      const { data: { session } } = await supabase.auth.getSession()
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const res = await fetch('/api/analyze-image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: formData
+      })
+      const analyzed = await res.json()
+
+      // 插入卡片到資料庫
+      const { error: insertError } = await supabase.from('cards').insert({
+        user_id: user.id,
+        type: '📷',
+        type_label: '圖片',
+        title: analyzed.title || '圖片卡片',
+        summary: analyzed.summary || '',
+        tag: analyzed.primary_tags?.[0] || analyzed.category || '',
+        status: 'done',
+        image_url: imageUrl
+      })
+
+      if (!insertError) {
+        setCards(prev => prev.filter(c => c.id !== tempId))
+        fetchCards()
+      }
+    } catch (err) {
+      console.error('圖片分析失敗:', err)
+      setCards(prev => prev.filter(c => c.id !== tempId))
+    }
+
+    e.target.value = ''
   }
 
   function timeAgo(dateStr) {
@@ -196,20 +265,40 @@ export default function Inbox({ user }) {
               <span style={{ fontSize: 11, fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.textTertiary, flex: 1 }}>{card.type_label}</span>
               <span style={{ fontSize: 12, color: colors.textTertiary }}>{timeAgo(card.created_at)}</span>
             </div>
-            {card.status === 'processing' && (
+            {(card.status === 'processing' || card.status === 'analyzing') && (
               <div style={{ marginBottom: '8px' }}>
                 <div style={{ height: '3px', background: 'rgba(0,122,255,0.15)', borderRadius: '2px', overflow: 'hidden', marginBottom: '4px' }}>
                   <div style={{ height: '100%', width: '60%', background: colors.primary, borderRadius: '2px' }}></div>
                 </div>
-                <div style={{ fontSize: 12, color: colors.textTertiary }}>處理中...</div>
+                <div style={{ fontSize: 12, color: colors.textTertiary }}>
+                  {card.status === 'analyzing' ? 'AI 分析中...' : '處理中...'}
+                </div>
               </div>
             )}
-            <div style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: '6px', lineHeight: '1.4' }}>{card.title}</div>
-            {card.summary && card.summary !== '正在處理中...' && (
-              <div style={{ fontSize: 13, color: colors.textSecondary, lineHeight: '1.5', marginBottom: '10px' }}>{card.summary}</div>
-            )}
+            {/* 卡片內容區：有圖片時左側顯示縮圖 */}
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              {card.image_url && (
+                <img
+                  src={card.image_url}
+                  alt=""
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 8,
+                    objectFit: 'cover',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: '6px', lineHeight: '1.4' }}>{card.title}</div>
+                {card.summary && card.summary !== '正在處理中...' && (
+                  <div style={{ fontSize: 13, color: colors.textSecondary, lineHeight: '1.5', marginBottom: '10px' }}>{card.summary}</div>
+                )}
+              </div>
+            </div>
             {card.tag && (
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '6px', marginTop: card.image_url ? '8px' : '0' }}>
                 <span style={{
                   padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: '500',
                   background: 'rgba(52,199,89,0.1)', color: colors.success,
@@ -220,13 +309,46 @@ export default function Inbox({ user }) {
         ))}
       </div>
 
-      {/* iOS FAB button */}
+      {/* 隱藏的圖片 input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleImageSelect}
+        style={{ display: 'none' }}
+      />
+
+      {/* FAB 區域：📷 相機 + ＋ 文字 */}
+      {/* 相機 FAB（右側，深灰色） */}
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        style={{
+          position: 'fixed',
+          bottom: '96px',
+          right: 'calc(50% - 195px + 16px)',
+          width: '56px',
+          height: '56px',
+          borderRadius: '28px',
+          backgroundColor: '#636366',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '24px',
+          cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+          color: 'white',
+          lineHeight: 1,
+        }}
+      >📷</div>
+
+      {/* ＋ FAB（相機左側，藍色） */}
       <div
         onClick={() => setShowAdd(!showAdd)}
         style={{
           position: 'fixed',
           bottom: '96px',
-          right: 'calc(50% - 195px + 16px)',
+          right: 'calc(50% - 195px + 16px + 64px)',
           width: '56px',
           height: '56px',
           borderRadius: '28px',

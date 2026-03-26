@@ -75,7 +75,25 @@ create policy "用戶只能存取自己的 chat_summaries" on chat_summaries
   for all using (auth.uid() = user_id);
 ```
 
+```sql
+-- 新增圖片欄位（已建立資料表的用戶請執行此行）
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS image_url TEXT;
+```
+
 4. 看到 **Success** 就完成了
+
+---
+
+## 第二點五步：建立圖片儲存空間
+
+1. 進入你的 Supabase 專案
+2. 點左側選單的 **Storage**
+3. 點 **New bucket**
+4. 名稱填入 `card-images`
+5. **Public bucket** 保持 **關閉**（Private）
+6. 點 **Create bucket**
+
+> 這個 bucket 用來儲存用戶上傳的圖片，設為 Private 確保只有本人可以存取。
 
 ---
 
