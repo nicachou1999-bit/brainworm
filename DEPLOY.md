@@ -120,8 +120,54 @@ Vercel 會自動幫你建置，大約等 **1～2 分鐘**。
 
 ---
 
+## 第四步：啟用 Google / Facebook 登入（選用）
+
+如果你想讓用戶用 Google 或 Facebook 帳號登入，需要額外設定：
+
+### 4-1 設定 Supabase Redirect URL
+
+1. 進入 [Supabase](https://supabase.com) → 你的專案 → **Authentication** → **URL Configuration**
+2. 在 **Redirect URLs** 加入：`https://你的domain.vercel.app/auth/callback`
+
+### 4-2 啟用 Google 登入
+
+**先在 Google Cloud Console 建立 OAuth 憑證：**
+
+1. 前往 [Google Cloud Console](https://console.cloud.google.com) → **APIs & Services** → **Credentials**
+2. 點 **Create Credentials** → **OAuth client ID**
+3. Application type 選 **Web application**
+4. 在 **Authorized redirect URIs** 加入 Supabase 提供的回調網址（格式：`https://你的專案ID.supabase.co/auth/v1/callback`）
+5. 建立後複製 **Client ID** 和 **Client Secret**
+
+**在 Supabase 啟用：**
+
+1. 進入 Supabase → **Authentication** → **Providers** → 找到 **Google** 點開
+2. 開啟 **Enable Sign in with Google**
+3. 填入剛才的 **Client ID** 和 **Client Secret**
+4. 點 **Save**
+
+### 4-3 啟用 Facebook 登入
+
+**先在 Meta Developer 建立應用程式：**
+
+1. 前往 [Meta for Developers](https://developers.facebook.com) → **My Apps** → **Create App**
+2. 選擇 **Consumer** 類型
+3. 在應用程式設定中，前往 **Facebook Login** → **Settings**
+4. 在 **Valid OAuth Redirect URIs** 加入：`https://你的專案ID.supabase.co/auth/v1/callback`
+5. 複製左側選單的 **App ID** 和 **App Secret**
+
+**在 Supabase 啟用：**
+
+1. 進入 Supabase → **Authentication** → **Providers** → 找到 **Facebook** 點開
+2. 開啟 **Enable Sign in with Facebook**
+3. 填入 **App ID** 和 **App Secret**
+4. 點 **Save**
+
+---
+
 ## 遇到問題？
 
 - **部署失敗**：回到 Vercel，點 **View Build Logs** 看錯誤訊息，通常是環境變數少填了
 - **打開 App 是空白的**：確認 Supabase 的 SQL 有成功執行
 - **無法登入**：進 Supabase → Authentication → Settings，確認 Site URL 已改成你的 Vercel 網址
+- **OAuth 登入失敗（oauth_failed）**：確認 Redirect URL 設定正確，且 Provider 已在 Supabase 啟用
