@@ -96,6 +96,11 @@ export default function Settings({ user }) {
   const [aiLayer, setAiLayer] = useState('cloud')
   const [surfaceNotif, setSurfaceNotif] = useState(true)
   const [cardNotif, setCardNotif] = useState(false)
+  const [isInstalled, setIsInstalled] = useState(false)
+
+  useEffect(() => {
+    setIsInstalled(window.matchMedia('(display-mode: standalone)').matches)
+  }, [])
 
   const langs = ['繁體中文', 'English', 'Español']
   const [showLangs, setShowLangs] = useState(false)
@@ -303,6 +308,27 @@ export default function Settings({ user }) {
               <Toggle value={item.value} onToggle={item.toggle} />
             </div>
           ))}
+        </GroupedList>
+
+        {/* Install App section */}
+        <SectionHeader title="安裝 App" isDark={isDark} />
+        <GroupedList isDark={isDark}>
+          <div style={{ padding: '14px 16px' }}>
+            {isInstalled ? (
+              <div style={{ fontSize: 15, color: isDark ? '#FFFFFF' : colors.text, transition: 'color 0.3s' }}>
+                ✅ 已安裝為 App
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 15, color: isDark ? '#FFFFFF' : colors.text, marginBottom: '6px', transition: 'color 0.3s' }}>
+                  📱 加入主畫面，像 App 一樣使用
+                </div>
+                <div style={{ fontSize: 13, color: subtext, transition: 'color 0.3s' }}>
+                  在瀏覽器選單點「加入主畫面」
+                </div>
+              </>
+            )}
+          </div>
         </GroupedList>
 
         {/* Weekly report section */}
