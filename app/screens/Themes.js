@@ -151,7 +151,7 @@ export default function Themes({ onThemeClick }) {
       {/* Grid */}
       <div style={{ padding: '8px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         {themes.map(theme => (
-          <div key={theme.id} onClick={onThemeClick} style={{
+          <div key={theme.id} onClick={() => onThemeClick(theme)} style={{
             background: colors.card,
             borderRadius: radius.lg,
             padding: '16px 14px',

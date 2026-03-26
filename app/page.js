@@ -23,6 +23,7 @@ function HomeInner() {
   const [screen, setScreen] = useState('inbox')
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [selectedTheme, setSelectedTheme] = useState(null)
   const { isDark } = useTheme()
   const [hasReviewCards, setHasReviewCards] = useState(false)
 
@@ -90,8 +91,8 @@ function HomeInner() {
       transition: 'color 0.3s',
     }}>
       {screen === 'inbox' && <Inbox user={user} onNavigate={setScreen} />}
-      {screen === 'themes' && <Themes onThemeClick={() => setScreen('themeDetail')} />}
-      {screen === 'themeDetail' && <ThemeDetail onBack={() => setScreen('themes')} />}
+      {screen === 'themes' && <Themes onThemeClick={(theme) => { setSelectedTheme({ id: theme.id, name: theme.name, emoji: theme.emoji }); setScreen('themeDetail') }} />}
+      {screen === 'themeDetail' && <ThemeDetail themeId={selectedTheme?.id} themeName={selectedTheme?.name} themeEmoji={selectedTheme?.emoji} onBack={() => setScreen('themes')} />}
       {screen === 'review' && <Review user={user} />}
       {screen === 'chat' && <Chat user={user} />}
       {screen === 'settings' && <Settings user={user} />}
