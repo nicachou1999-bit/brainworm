@@ -22,6 +22,10 @@ function timeAgo(dateStr) {
 export default function ThemeDetail({ themeId, themeName, themeEmoji, onBack }) {
   const [cards, setCards] = useState([])
   const [loading, setLoading] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [editLink, setEditLink] = useState('')
+  const [generatingLink, setGeneratingLink] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!themeId) return
@@ -36,6 +40,36 @@ export default function ThemeDetail({ themeId, themeName, themeEmoji, onBack }) 
         setLoading(false)
       })
   }, [themeId])
+
+  async function generateEditLink() {
+    setGeneratingLink(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ themeId, action: 'generate-edit-link' }),
+      })
+      const json = await res.json()
+      if (json.editUrl) setEditLink(json.editUrl)
+    } catch (e) {
+      console.error('generate edit link error', e)
+    }
+    setGeneratingLink(false)
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(editLink)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* ignore */
+    }
+  }
 
   return (
     <div style={{ paddingBottom: '80px' }}>
@@ -56,6 +90,11 @@ export default function ThemeDetail({ themeId, themeName, themeEmoji, onBack }) 
             </div>
           </div>
         </div>
+        <div onClick={() => setShowShare(true)} style={{
+          fontSize: '13px', fontWeight: '600', color: '#9B9AAF',
+          cursor: 'pointer', padding: '6px 10px',
+          background: 'rgba(155,154,175,0.12)', borderRadius: '10px'
+        }}>分享</div>
       </div>
 
       <div style={{ padding: '0 16px' }}>
@@ -107,6 +146,77 @@ export default function ThemeDetail({ themeId, themeName, themeEmoji, onBack }) 
           <div style={{ fontSize: '11px', color: '#9B9AAF' }}>AI 會先問你用途，再決定怎麼打包並匯出到 NotebookLM</div>
         </div>
       </div>
+
+      {/* Share Modal */}
+      {showShare && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          zIndex: 100, display: 'flex', alignItems: 'flex-end',
+        }} onClick={() => setShowShare(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#1C1C22', borderRadius: '24px 24px 0 0',
+            padding: '24px 20px 40px', width: '100%', boxSizing: 'border-box',
+          }}>
+            <div style={{ width: '36px', height: '4px', background: '#3A3A48', borderRadius: '2px', margin: '0 auto 20px' }} />
+            <div style={{ fontSize: '17px', fontWeight: '700', color: '#F0EFF8', marginBottom: '20px' }}>分享主題</div>
+
+            {/* Collab edit link section */}
+            <div style={{
+              background: '#14141A', borderRadius: '14px', padding: '16px', marginBottom: '16px',
+              border: '1px solid #2A2A36'
+            }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#F0EFF8', marginBottom: '12px' }}>🔗 共編連結</div>
+
+              {!editLink ? (
+                <button
+                  onClick={generateEditLink}
+                  disabled={generatingLink}
+                  style={{
+                    width: '100%', padding: '13px',
+                    background: generatingLink ? 'rgba(255,149,0,0.5)' : '#FF9500',
+                    border: 'none', borderRadius: '12px',
+                    fontSize: '15px', fontWeight: '600', color: 'white',
+                    cursor: generatingLink ? 'default' : 'pointer',
+                  }}
+                >
+                  {generatingLink ? '產生中...' : '產生共編連結'}
+                </button>
+              ) : (
+                <div>
+                  <div style={{
+                    background: '#0E0E14', borderRadius: '10px', padding: '10px 12px',
+                    fontSize: '12px', color: '#9B9AAF', wordBreak: 'break-all',
+                    lineHeight: '1.6', marginBottom: '10px', border: '1px solid #2A2A36'
+                  }}>{editLink}</div>
+                  <button
+                    onClick={copyLink}
+                    style={{
+                      width: '100%', padding: '13px',
+                      background: copied ? '#34C759' : '#FF9500',
+                      border: 'none', borderRadius: '12px',
+                      fontSize: '15px', fontWeight: '600', color: 'white',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {copied ? '✓ 已複製' : '複製連結'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowShare(false)}
+              style={{
+                width: '100%', padding: '13px',
+                background: 'rgba(118,118,128,0.12)',
+                border: 'none', borderRadius: '12px',
+                fontSize: '15px', fontWeight: '500', color: '#9B9AAF',
+                cursor: 'pointer',
+              }}
+            >關閉</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
