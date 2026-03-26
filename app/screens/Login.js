@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { colors, typography, shadow, radius } from '../styles/ios-theme'
 
@@ -7,9 +7,21 @@ export default function Login({ onLogin }) {
   const [mode, setMode] = useState('login') // 'login' | 'register'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [referralCode, setReferralCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const ref = params.get('ref')
+      if (ref) {
+        setReferralCode(ref.toUpperCase().slice(0, 6))
+        setMode('register')
+      }
+    }
+  }, [])
 
   async function handleSubmit() {
     if (!email || !password) return
@@ -22,9 +34,17 @@ export default function Login({ onLogin }) {
       if (error) setError(error.message)
       else onLogin()
     } else {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) setError(error.message)
-      else setMessage('確認信已寄出，請去收信後再登入。')
+      const { data, error } = await supabase.auth.signUp({ email, password })
+      if (error) {
+        setError(error.message)
+      } else {
+        // 若有推薦碼，等帳號建立後兌換（新用戶需先確認 email，記錄推薦碼供之後使用）
+        if (referralCode && data?.user) {
+          // 儲存推薦碼到 localStorage，確認 email 後登入時自動兌換
+          localStorage.setItem('pending_referral_code', referralCode)
+        }
+        setMessage('確認信已寄出，請去收信後再登入。')
+      }
     }
     setLoading(false)
   }
@@ -121,6 +141,29 @@ export default function Login({ onLogin }) {
                 boxSizing: 'border-box',
               }}
             />
+
+            {mode === 'register' && (
+              <input
+                type="text"
+                placeholder="邀請碼（選填）"
+                value={referralCode}
+                onChange={e => setReferralCode(e.target.value.toUpperCase().slice(0, 6))}
+                style={{
+                  background: 'rgba(118,118,128,0.08)',
+                  border: 'none',
+                  borderRadius: radius.md,
+                  padding: '14px 16px',
+                  fontSize: 17,
+                  color: colors.text,
+                  outline: 'none',
+                  fontFamily: typography.fontFamily,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  letterSpacing: referralCode ? '0.1em' : 'normal',
+                  fontWeight: referralCode ? '600' : '400',
+                }}
+              />
+            )}
 
             {error && (
               <div style={{
