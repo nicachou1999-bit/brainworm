@@ -73,6 +73,9 @@ create policy "用戶只能存取自己的 themes" on themes
 -- chat_summaries 的存取規則
 create policy "用戶只能存取自己的 chat_summaries" on chat_summaries
   for all using (auth.uid() = user_id);
+
+-- 確保 cards 表有 theme_id 欄位
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS theme_id UUID REFERENCES themes(id);
 ```
 
 4. 看到 **Success** 就完成了
