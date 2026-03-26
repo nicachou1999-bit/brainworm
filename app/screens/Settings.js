@@ -134,6 +134,38 @@ export default function Settings({ user }) {
     setReportExpanded(v => !v)
   }
 
+  // Export state
+  const [exportLoadingJson, setExportLoadingJson] = useState(false)
+  const [exportLoadingCsv, setExportLoadingCsv] = useState(false)
+  const [exportToast, setExportToast] = useState('')
+
+  async function handleExport(format) {
+    const setLoading = format === 'json' ? setExportLoadingJson : setExportLoadingCsv
+    if (format === 'json' ? exportLoadingJson : exportLoadingCsv) return
+    setLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`/api/export-data?format=${format}`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) throw new Error('export failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const dateStr = new Date().toISOString().slice(0, 10)
+      a.download = `brainworm-export-${dateStr}.${format}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch {
+      setExportToast('匯出失敗，請稍後再試')
+      setTimeout(() => setExportToast(''), 3000)
+    }
+    setLoading(false)
+  }
+
   // Referral state
   const [quota, setQuota] = useState(null)
   const [referralInput, setReferralInput] = useState('')
@@ -570,6 +602,46 @@ export default function Settings({ user }) {
           </>
         )}
 
+        {/* My Data section */}
+        <SectionHeader title="我的資料" isDark={isDark} />
+        <GroupedList isDark={isDark}>
+          <ListRow
+            label="下載所有資料 (JSON)"
+            isDark={isDark}
+            onClick={() => handleExport('json')}
+            value={exportLoadingJson ? '下載中...' : undefined}
+            chevron={!exportLoadingJson}
+          />
+          <ListRow
+            label="下載所有資料 (CSV)"
+            isDark={isDark}
+            onClick={() => handleExport('csv')}
+            value={exportLoadingCsv ? '下載中...' : undefined}
+            chevron={!exportLoadingCsv}
+            last
+          />
+        </GroupedList>
+        <div style={{ fontSize: 13, color: subtext, padding: '6px 4px 0', paddingLeft: '4px', transition: 'color 0.3s' }}>
+          包含所有卡片與主題，隨時帶走
+        </div>
+        {exportToast ? (
+          <div style={{
+            position: 'fixed',
+            bottom: '100px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.78)',
+            color: 'white',
+            fontSize: 14,
+            padding: '10px 20px',
+            borderRadius: '20px',
+            zIndex: 9999,
+            whiteSpace: 'nowrap',
+          }}>
+            {exportToast}
+          </div>
+        ) : null}
+
         {/* Account section */}
         <SectionHeader title="帳號" isDark={isDark} />
         {user && (
@@ -579,7 +651,6 @@ export default function Settings({ user }) {
         )}
         <GroupedList isDark={isDark}>
           <ListRow label="👤 帳號" value="Pro 方案" onClick={() => {}} isDark={isDark} />
-          <ListRow label="📤 匯出所有資料" onClick={() => {}} last={false} isDark={isDark} />
           <ListRow
             label="登出"
             danger
