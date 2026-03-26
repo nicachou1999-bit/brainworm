@@ -8,6 +8,7 @@ import ThemeDetail from './screens/ThemeDetail'
 import Chat from './screens/Chat'
 import Settings from './screens/Settings'
 import Review from './screens/Review'
+import Onboarding from './screens/Onboarding'
 import { colors, typography } from './styles/ios-theme'
 import { ThemeProvider, useTheme } from './context/ThemeContext'
 
@@ -45,6 +46,18 @@ function HomeInner() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    if (!localStorage.getItem('brainworm-onboarded')) {
+      setScreen('onboarding')
+    }
+  }, [user])
+
+  function handleOnboardingComplete() {
+    localStorage.setItem('brainworm-onboarded', 'true')
+    setScreen('inbox')
+  }
 
   useEffect(() => {
     if (!user) return
@@ -96,6 +109,7 @@ function HomeInner() {
       position: 'relative',
       transition: 'color 0.3s',
     }}>
+      {screen === 'onboarding' && <Onboarding onComplete={handleOnboardingComplete} />}
       {screen === 'inbox' && <Inbox user={user} onNavigate={setScreen} />}
       {screen === 'themes' && <Themes onThemeClick={(theme) => { setSelectedTheme({ id: theme.id, name: theme.name, emoji: theme.emoji }); setScreen('themeDetail') }} />}
       {screen === 'themeDetail' && <ThemeDetail themeId={selectedTheme?.id} themeName={selectedTheme?.name} themeEmoji={selectedTheme?.emoji} onBack={() => setScreen('themes')} />}
@@ -103,7 +117,7 @@ function HomeInner() {
       {screen === 'chat' && <Chat user={user} />}
       {screen === 'settings' && <Settings user={user} />}
 
-      {screen !== 'themeDetail' && (
+      {screen !== 'themeDetail' && screen !== 'onboarding' && (
         <div style={{
           position: 'fixed',
           bottom: 0,
