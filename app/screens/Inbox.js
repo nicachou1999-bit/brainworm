@@ -1,5 +1,20 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+
+function HighlightText({ text, query }) {
+  if (!query || !text) return <>{text}</>
+  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span style={{ background: '#FFD60A', borderRadius: '2px', padding: '0 2px' }}>
+        {text.slice(idx, idx + query.length)}
+      </span>
+      <HighlightText text={text.slice(idx + query.length)} query={query} />
+    </>
+  )
+}
 import { supabase } from '../../lib/supabase'
 import { colors, typography, shadow, radius } from '../styles/ios-theme'
 import { useTheme } from '../context/ThemeContext'
@@ -35,10 +50,13 @@ export default function Inbox({ user, onNavigate }) {
   const [searchFocused, setSearchFocused] = useState(false)
   const searchInputRef = useRef(null)
   const [selectedTags, setSelectedTags] = useState([])
+  const [searchPage, setSearchPage] = useState(1)
 
   // Weekly banner state
   const [weeklyBanner, setWeeklyBanner] = useState(null) // { headline } | null
   const [bannerDismissed, setBannerDismissed] = useState(false)
+
+  useEffect(() => { setSearchPage(1) }, [searchText])
 
   useEffect(() => {
     fetchCards()
@@ -272,6 +290,11 @@ export default function Inbox({ user, onNavigate }) {
     return true
   })
 
+  const PAGE_SIZE = 10
+  const displayedCards = searchText ? filtered.slice(0, searchPage * PAGE_SIZE) : filtered
+  const hasMoreSearch = searchText && filtered.length > searchPage * PAGE_SIZE
+  const remainingSearch = hasMoreSearch ? filtered.length - searchPage * PAGE_SIZE : 0
+
   function timeAgo(dateStr) {
     const diff = Date.now() - new Date(dateStr).getTime()
     const mins = Math.floor(diff / 60000)
@@ -494,12 +517,14 @@ export default function Inbox({ user, onNavigate }) {
             <div style={{ fontSize: 13, fontWeight: '600', color: subtext, marginBottom: '10px', transition: 'color 0.3s' }}>
               貼入網址
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+              <textarea
                 value={url}
                 onChange={e => setUrl(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && addCard()}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && addCard()}
+                onInput={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
                 placeholder="https://..."
+                rows={1}
                 style={{
                   flex: 1,
                   background: inputBg,
@@ -511,8 +536,11 @@ export default function Inbox({ user, onNavigate }) {
                   outline: 'none',
                   fontFamily: typography.fontFamily,
                   transition: 'background 0.3s, color 0.3s',
+                  minHeight: '80px',
+                  resize: 'none',
+                  overflow: 'auto',
                 }}
-              />
+              ></textarea>
               <button onClick={addCard} disabled={adding} style={{
                 background: colors.primary,
                 border: 'none',
@@ -602,7 +630,7 @@ export default function Inbox({ user, onNavigate }) {
           </div>
         )}
 
-        {filtered.map(card => (
+        {displayedCards.map(card => (
           <div key={card.id} style={{
             background: cardBg,
             borderRadius: radius.lg,
@@ -643,9 +671,13 @@ export default function Inbox({ user, onNavigate }) {
                 />
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: '600', color: text, marginBottom: '6px', lineHeight: '1.4', transition: 'color 0.3s' }}>{card.title}</div>
+                <div style={{ fontSize: 15, fontWeight: '600', color: text, marginBottom: '6px', lineHeight: '1.4', transition: 'color 0.3s' }}>
+                  <HighlightText text={card.title} query={searchText} />
+                </div>
                 {card.summary && card.summary !== '正在處理中...' && (
-                  <div style={{ fontSize: 13, color: subtext, lineHeight: '1.5', marginBottom: '10px', transition: 'color 0.3s' }}>{card.summary}</div>
+                  <div style={{ fontSize: 13, color: subtext, lineHeight: '1.5', marginBottom: '10px', transition: 'color 0.3s' }}>
+                    <HighlightText text={card.summary} query={searchText} />
+                  </div>
                 )}
               </div>
             </div>
@@ -723,6 +755,25 @@ export default function Inbox({ user, onNavigate }) {
             )}
           </div>
         ))}
+        {hasMoreSearch && (
+          <div style={{ textAlign: 'center', margin: '8px 0 16px' }}>
+            <button
+              onClick={() => setSearchPage(p => p + 1)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: 14,
+                color: subtext,
+                cursor: 'pointer',
+                padding: '8px 20px',
+                borderRadius: '20px',
+                fontFamily: typography.fontFamily,
+              }}
+            >
+              載入更多（還有 {remainingSearch} 則）
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 隱藏的圖片 input */}
